@@ -32,7 +32,7 @@ https://store.steampowered.com/app/1811180/
 ### Install and use
 
 1. Download the latest **Fallen Doll Mod release** for your game version, then close the game.
-2. Extract the complete Mod package, then double-click **`Install Mod.cmd`**. The current Playtest package searches the Steam libraries, shows the detected destination, checks runtime-folder write access, installs the Mod, and verifies the required files. If automatic detection is unavailable for the downloaded package, follow the edition-specific manual installation steps below.
+2. Extract the complete Mod package, then double-click **`Install Mod.cmd`**. The current Demo and Playtest packages search the Steam libraries, show the detected destination, check runtime-folder write access, install the Mod, and verify the required files. The Demo package first asks you to choose Demo Desktop, Demo VR, or Legacy 0.49. If automatic detection fails, select the top-level game folder when prompted or follow the manual steps below.
 3. Download and extract the latest **Motion Bridge** portable ZIP, then start `MotionBridge.exe`.
 4. Start Fallen Doll and enter an HAnime. In Motion Bridge, wait until **STREAM** shows **ONLINE**.
 5. Open the 3D preview and verify that the motion looks correct before connecting hardware.
@@ -142,7 +142,7 @@ https://store.steampowered.com/app/1811180/
 ### 安装与使用
 
 1. 根据游戏版本下载最新的 **Fallen Doll Mod 发布包**，然后关闭游戏。
-2. 完整解压 Mod 包，然后双击 **`Install Mod.cmd`**。当前 Playtest 安装包会自动搜索 Steam 库，显示检测到的目标位置，检查 runtime 目录写入权限，安装 Mod，并验证必需文件。如果下载的版本尚不提供自动检测，请按照下方区分版本的步骤手动安装。
+2. 完整解压 Mod 包，然后双击 **`Install Mod.cmd`**。当前 Demo 与 Playtest 安装包都会自动搜索 Steam 库，显示检测到的目标位置，检查 runtime 目录写入权限，安装 Mod，并验证必需文件。Demo 安装包会先要求选择 Demo Desktop、Demo VR 或 Legacy 0.49。自动检测失败时，请按提示选择游戏最外层目录，或按照下方步骤手动安装。
 3. 下载并解压最新版 **Motion Bridge** 便携包，然后启动 `MotionBridge.exe`。
 4. 启动 Fallen Doll 并进入 HAnime。在 Motion Bridge 中等待 **STREAM** 显示为 **ONLINE**。
 5. 打开 3D 预览，先确认动作正确，再连接设备。
