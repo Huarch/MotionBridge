@@ -21,7 +21,8 @@ if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
 # an isolated LGPL Qt SDK under .toolchain so it is never mixed with F8Studio.
 & $Python -m pip install --user --upgrade aqtinstall
 if ($LASTEXITCODE -ne 0) { throw "Could not install aqtinstall." }
-& $Python -m aqt install-qt windows desktop $QtVersion $Kit `
+$aqtArchitecture = if ($Kit -eq "mingw_64") { "win64_mingw" } else { $Kit }
+& $Python -m aqt install-qt windows desktop $QtVersion $aqtArchitecture `
     --outputdir $QtRoot --modules qtquick3d qtshadertools qtserialport qtwebsockets
 if ($LASTEXITCODE -ne 0) { throw "Could not install the required Qt modules." }
 

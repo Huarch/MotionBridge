@@ -20,10 +20,10 @@ https://store.steampowered.com/app/1811180/
 ### Motion Bridge
 
 - Real-time six-axis `L0/L1/L2/R0/R1/R2` motion for SR6; OSR2 uses `L0`.
-- USB TCode, Wi-Fi UDP TCode (default: `tcode.local:8000`), Intiface Desktop, and direct Handy output.
+- USB TCode, Wi-Fi UDP TCode (default: `tcode.local:8000`), and Intiface Desktop output.
 - Compatible with Intiface Central 2.6.
 - A separate live SR6/OSR 3D preview, which can stay on top of the game window.
-- Per-axis gain and output-range controls, cross-axis smart limits with an editable two-point curve, hard speed limits, output switches, and configurable safe positions. A selected driver axis can dynamically reduce another axis' range or response speed. Axis cards and the 3D preview show the final protected signal even while hardware output is disarmed. Settings are saved with the portable app.
+- Per-axis gain, inversion and output-range controls, cross-axis smart limits with an editable two-point curve, hard speed limits, output switches, and configurable return positions. Return positions default to `50%` and are used for stream-loss return, explicit stop, startup safety and disabled axes. Position, Range, preferred interval and learned travel are shown consistently as `0–100%`; each axis has its own invert switch immediately left of the preferred-range button. A selected driver axis can dynamically reduce another axis' range or response speed. Axis cards and the 3D preview show the final protected signal even while hardware output is disarmed. Settings are saved with the portable app.
 - Safe startup: output always begins disarmed. On stream loss, motion briefly holds and then returns smoothly to centre.
 - English and Simplified Chinese UI.
 - Use the matching Mod branch for Fallen Doll Demo or Fallen Doll Playtest.
@@ -32,13 +32,13 @@ https://store.steampowered.com/app/1811180/
 ### Install and use
 
 1. Download the latest **Fallen Doll Mod release** for your game version, then close the game.
-2. Extract the complete Mod package. Keep `Install-Mod.ps1` beside its `Game` folder, then run the installer and provide the top-level game folder—not an EXE file or the inner `Win64` folder. Alternatively, follow the edition-specific manual installation steps below.
+2. Extract the complete Mod package, then double-click **`Install Mod.cmd`**. The current Playtest package searches the Steam libraries, shows the detected destination, checks runtime-folder write access, installs the Mod, and verifies the required files. If automatic detection is unavailable for the downloaded package, follow the edition-specific manual installation steps below.
 3. Download and extract the latest **Motion Bridge** portable ZIP, then start `MotionBridge.exe`.
 4. Start Fallen Doll and enter an HAnime. In Motion Bridge, wait until **STREAM** shows **ONLINE**.
 5. Open the 3D preview and verify that the motion looks correct before connecting hardware.
-6. Choose one output method: **USB**, **Wi-Fi**, **Intiface**, or **Handy**. Check the port/address, set safe per-axis ranges, then explicitly select **ARM OUTPUT**. Direct Handy output needs its Handyverse connection key; the key is only kept until Motion Bridge closes.
+6. Choose one output method: **USB**, **Wi-Fi**, or **Intiface**. Check the port/address, set safe per-axis ranges, then explicitly select **ARM OUTPUT**. For Intiface, connect the hardware in Intiface Central first.
 
-#### Manual Mod installation
+#### Manual Mod installation (fallback only)
 
 1. Close Fallen Doll completely and extract the entire downloaded Mod ZIP.
 2. Choose the destination that matches the exact game edition:
@@ -107,8 +107,10 @@ For ongoing support and release discussion, [join the MotionBridge Discord](http
 
 - This is an unofficial community project; it is not affiliated with the game developers or hardware vendors.
 - The packages do not include game assets, device drivers, or Intiface Desktop.
-- Intiface support currently uses the first declared **Position** feature and maps it from `L0`; it is not a generic SR6 mapping.
-- Direct Handy output checks the connection and firmware, enters HDSP mode, and sends timed `/hdsp/xpt` position targets. It coalesces `L0` into the newest target and derives duration from the real cloud dispatch interval, so stale game-motion requests do not accumulate. MultiFunPlayer was used only as a source-code reference and is not required.
+- Intiface support uses the first declared **Position-with-duration** or plain **Position** feature and maps it from `L0`; it is not a generic SR6 mapping.
+- The persistent **Auto reconnect** status button in the Device connection header applies to USB, Wi-Fi and Intiface. It retries detected transport failures with a 0.5–5 second backoff and resumes only output that was already enabled. USB retries a lost serial port; Intiface retries server or device disconnects; Wi-Fi rebuilds output after local network, address-resolution or UDP socket errors. UDP cannot confirm whether the remote device itself is connected. **STOP OUTPUT** or changing transport always cancels reconnection.
+- Intiface declares each device's output feature and native Value range. Motion Bridge maps the unified L0 `0–100%` signal into that range automatically: TCode uses `0–9999`, Handy advertises `0–100`, and other devices use their own declared limits. The L0 Range remains entirely user-controlled.
+- For timed-position linear devices, mainly Handy, Motion Bridge retains only the newest L0 target and sends it from a dedicated precise `20 Hz` timer. **Target arrival time** defaults to Automatic, where each `Duration` follows the real timer interval (normally `50 ms`, automatically adjusted after a delayed tick). Advanced users may select `50–100 ms` manually in `5 ms` steps; `50–70 ms` is the practical tuning range, while higher values add more response delay. Ordinary **Position** remains the fallback; USB/Wi-Fi TCode and vibration output are unaffected.
 - New or unusual scenes should always be checked in the preview first. Set conservative output ranges for your hardware.
 
 ---
@@ -128,10 +130,10 @@ https://store.steampowered.com/app/1811180/
 ### Motion Bridge
 
 - SR6 实时六轴 `L0/L1/L2/R0/R1/R2`；OSR2 使用 `L0`。
-- 支持 USB TCode、Wi-Fi UDP TCode（默认 `tcode.local:8000`）、Intiface Desktop 和 Handy 直连输出。
+- 支持 USB TCode、Wi-Fi UDP TCode（默认 `tcode.local:8000`）和 Intiface Desktop 输出。
 - 兼容 Intiface Central 2.6。
 - 独立的 SR6/OSR 实时 3D 预览窗口，可置顶显示在游戏上方。
-- 每轴增益与输出范围、带双点曲线的跨轴智能限制、硬性速度限制、输出开关和安全位置设置；智能限制可根据所选驱动轴的位置，动态缩小另一个轴的行程或响应速度。即使硬件输出未解锁，轴卡和 3D 预览也会显示最终处理后的信号。便携版会保存设置。
+- 每轴增益、反向与输出范围、带双点曲线的跨轴智能限制、硬性速度限制、输出开关和归中位置设置；每轴归中位置默认均为 `50%`，并用于断流归中、主动停止、启动安全位置和已关闭轴。位置、Range、偏好区间与学习行程统一显示为 `0–100%`，每张轴卡的偏好区间按钮左侧都有独立反向开关。智能限制可根据所选驱动轴的位置，动态缩小另一个轴的行程或响应速度。即使硬件输出未解锁，轴卡和 3D 预览也会显示最终处理后的信号。便携版会保存设置。
 - 安全启动：设备输出默认未解锁。数据流中断时会短暂停留，然后平滑回中。
 - 支持英文和简体中文界面。
 - 请按游戏版本选择 Fallen Doll Demo 或 Fallen Doll Playtest 对应的 Mod 分支。
@@ -140,13 +142,13 @@ https://store.steampowered.com/app/1811180/
 ### 安装与使用
 
 1. 根据游戏版本下载最新的 **Fallen Doll Mod 发布包**，然后关闭游戏。
-2. 完整解压 Mod 包，保持 `Install-Mod.ps1` 与 `Game` 文件夹位于同一级；运行安装器，并提供游戏最外层目录，不要填写 EXE 文件或内部的 `Win64` 文件夹。也可以按照下方区分版本的步骤手动安装。
+2. 完整解压 Mod 包，然后双击 **`Install Mod.cmd`**。当前 Playtest 安装包会自动搜索 Steam 库，显示检测到的目标位置，检查 runtime 目录写入权限，安装 Mod，并验证必需文件。如果下载的版本尚不提供自动检测，请按照下方区分版本的步骤手动安装。
 3. 下载并解压最新版 **Motion Bridge** 便携包，然后启动 `MotionBridge.exe`。
 4. 启动 Fallen Doll 并进入 HAnime。在 Motion Bridge 中等待 **STREAM** 显示为 **ONLINE**。
 5. 打开 3D 预览，先确认动作正确，再连接设备。
-6. 选择一种输出方式：**USB**、**Wi-Fi**、**Intiface** 或 **Handy**。确认端口/地址，为设备设置安全的各轴范围后，再手动点击 **ARM OUTPUT**。Handy 直连需要填写 Handyverse 连接密钥；密钥只会保留到 Motion Bridge 关闭。
+6. 选择一种输出方式：**USB**、**Wi-Fi** 或 **Intiface**。确认端口/地址，为设备设置安全的各轴范围后，再手动点击 **ARM OUTPUT**。使用 Intiface 时，先在 Intiface Central 中连接设备。
 
-#### 手动安装 Mod
+#### 手动安装 Mod（仅作备用）
 
 1. 完全关闭 Fallen Doll，并完整解压下载的 Mod ZIP。
 2. 根据实际游戏版本选择目标目录：
@@ -215,6 +217,8 @@ MotionBridge 和 Mod 之间不是网络连接。Mod 会写入本地动作文件�
 
 - 这是非官方社区项目，与游戏开发商和设备厂商没有关联。
 - 发布包不包含游戏资源、设备驱动或 Intiface Desktop。
-- Intiface 当前只使用设备声明的第一个 **Position** 功能，并由 `L0` 驱动；它不是通用的 SR6 映射。
-- Handy 直连会先检查连接和固件、进入 HDSP 模式，再发送 `/hdsp/xpt` 定时位置目标。程序只保留最新 `L0`，并按实际云端发送间隔计算到达时长，避免旧的游戏动作请求积压。MultiFunPlayer 仅作为公开源码参考，运行时不需要安装或连接。
+- Intiface 当前使用设备声明的第一个 **Position-with-duration** 或普通 **Position** 功能，并由 `L0` 驱动；它不是通用的 SR6 映射。
+- “设备连接”标题区的“自动重连”状态按钮同时适用于 USB、Wi-Fi 和 Intiface，并会持久保存。开启后，检测到连接故障时会按 0.5–5 秒退避重试，并且只恢复之前已启用的输出。USB 会重试丢失的串口；Intiface 会重连服务器或设备；Wi-Fi 会在本机网络、地址解析或 UDP 套接字报错后重建输出。UDP 无法确认远端设备本身是否在线。手动停止输出或切换连接方式会立即取消重连。
+- Intiface 会声明各设备的输出功能和原生 Value 范围。Motion Bridge 会把统一的 L0 `0–100%` 自动映射到该范围：TCode 使用 `0–9999`，Handy 声明 `0–100`，其他设备使用各自声明的范围；L0 Range 始终由用户自行设置。
+- 对支持 **Position-with-duration** 的线性设备（主要是 Handy），Motion Bridge 只保留最新 L0 目标，并通过独立的精确 `20 Hz` 定时器发送。“目标到达时间”默认使用“自动”，此时每条命令的 `Duration` 跟随真实定时周期（通常为 `50 ms`，定时器延迟时自动调整）。高级用户可以按 `5 ms` 步进手动选择 `50–100 ms`；`50–70 ms` 是较实用的范围，更高数值会增加响应延迟。普通 **Position** 仍作为回退；USB/Wi-Fi TCode 和振动输出不受影响。
 - 遇到新动作或特殊姿势，请先在预览中确认，并为自己的设备使用保守的输出范围。

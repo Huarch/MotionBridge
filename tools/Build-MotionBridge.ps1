@@ -52,7 +52,7 @@ cmake @configure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 cmake --build $buildDirectory --config $Configuration
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-ctest --test-dir $buildDirectory -C $Configuration --output-on-failure
+ctest --test-dir $buildDirectory -C $Configuration --output-on-failure --interactive-debug-mode 0
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if ($Portable -and -not $CoreOnly) {

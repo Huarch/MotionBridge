@@ -158,6 +158,7 @@ struct PreferredTravelStatus {
 struct SafetyConfig {
     std::chrono::milliseconds hold_for{250};
     std::chrono::milliseconds return_for{600};
+    std::array<double, 6> return_positions{0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
 };
 
 enum class MotionState { Idle, Active, Holding, Returning, Fault };

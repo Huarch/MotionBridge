@@ -17,6 +17,7 @@ public:
 
     void set_contact_config(ContactConfig contact);
     void set_axis_tuning(std::array<AxisTuning, 6> tuning);
+    void set_axis_return_position(std::size_t axis, double position);
     void set_axis_travel_preference(std::size_t axis, PreferredTravelConfig config);
     void reset_axis_travel_learning(std::size_t axis);
     [[nodiscard]] const ContactConfig& contact_config() const noexcept;

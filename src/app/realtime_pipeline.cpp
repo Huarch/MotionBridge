@@ -21,7 +21,6 @@ DeviceRouter::Mode parse_mode(const QString& value) {
     if (value == u"usb") return DeviceRouter::Mode::Usb;
     if (value == u"wifi") return DeviceRouter::Mode::Wifi;
     if (value == u"intiface") return DeviceRouter::Mode::Intiface;
-    if (value == u"handy") return DeviceRouter::Mode::Handy;
     return DeviceRouter::Mode::None;
 }
 
@@ -30,7 +29,6 @@ QString mode_name(const DeviceRouter::Mode mode) {
     case DeviceRouter::Mode::Usb: return QStringLiteral("usb");
     case DeviceRouter::Mode::Wifi: return QStringLiteral("wifi");
     case DeviceRouter::Mode::Intiface: return QStringLiteral("intiface");
-    case DeviceRouter::Mode::Handy: return QStringLiteral("handy");
     default: return QStringLiteral("none");
     }
 }
@@ -56,11 +54,21 @@ void RealtimePipeline::start() {
     output_processor_.arm(now());
     connect(input_, &FallenDollInput::frame_ready, this, &RealtimePipeline::on_frame);
     connect(input_, &FallenDollInput::connection_changed, this, [this](const bool connected, const QString& detail) { emit stream_status_changed(connected, detail); });
-    connect(device_, &DeviceRouter::status_changed, this, [this](const QString& status, const bool) { emit output_status_changed(status, device_->armed(), mode_name(device_->mode())); });
+    connect(device_, &DeviceRouter::status_changed, this, [this](const QString& status, const bool) {
+        if (device_->armed() && !device_output_active_) {
+            const auto current = now();
+            output_processor_.arm(current);
+            last_output_time_ = current;
+            device_output_active_ = true;
+        } else if (!device_->armed() && !device_->arming()) {
+            device_output_active_ = false;
+        }
+        emit output_status_changed(status, device_->armed(), device_->arming(), mode_name(device_->mode()));
+    });
     connect(output_timer_, &QTimer::timeout, this, &RealtimePipeline::on_output_tick);
     output_timer_->start();
     input_->start();
-    emit output_status_changed(device_->armed() ? tr("Output armed") : tr("Output disarmed"), device_->armed(), mode_name(device_->mode()));
+    emit output_status_changed(device_->armed() ? tr("Output armed") : tr("Output disarmed"), device_->armed(), device_->arming(), mode_name(device_->mode()));
 }
 
 void RealtimePipeline::stop() { output_timer_->stop(); output_processor_.disarm(); device_->emergency_stop(); }
@@ -81,8 +89,33 @@ void RealtimePipeline::set_output_mode(const QString& mode) {
 void RealtimePipeline::set_usb_port(const QString& port) { usb_port_ = port.trimmed(); device_->set_usb_port(usb_port_); auto settings = motion_bridge_settings(); settings.setValue("device/usbPort", usb_port_); publish_connection_settings(); }
 void RealtimePipeline::set_wifi_endpoint(const QString& host, const int port) { wifi_host_ = host.trimmed(); wifi_port_ = std::clamp(port, 1, 65535); device_->set_wifi_endpoint(wifi_host_, static_cast<quint16>(wifi_port_)); auto settings = motion_bridge_settings(); settings.setValue("device/wifiHost", wifi_host_); settings.setValue("device/wifiPort", wifi_port_); publish_connection_settings(); }
 void RealtimePipeline::set_intiface_url(const QString& url) { intiface_url_ = url.trimmed(); device_->set_intiface_url(QUrl(intiface_url_)); auto settings = motion_bridge_settings(); settings.setValue("device/intifaceUrl", intiface_url_); publish_connection_settings(); }
-void RealtimePipeline::set_handy_connection_key(const QString& key) { handy_connection_key_ = key.trimmed(); device_->set_handy_connection_key(handy_connection_key_); publish_connection_settings(); }
+void RealtimePipeline::set_auto_reconnect(const bool enabled) {
+    if (auto_reconnect_ == enabled) return;
+    auto_reconnect_ = enabled;
+    device_->set_auto_reconnect(enabled);
+    auto settings = motion_bridge_settings();
+    settings.setValue("device/autoReconnect", enabled);
+    publish_connection_settings();
+}
 
+void RealtimePipeline::set_intiface_target_time_automatic(const bool automatic) {
+    if (intiface_target_time_automatic_ == automatic) return;
+    intiface_target_time_automatic_ = automatic;
+    device_->set_intiface_target_time(automatic, intiface_target_time_ms_);
+    auto settings = motion_bridge_settings();
+    settings.setValue("output/intifaceTargetTimeAutomatic", automatic);
+    publish_output_processing_settings();
+}
+
+void RealtimePipeline::set_intiface_target_time_ms(const int duration_ms) {
+    const auto next = std::clamp(duration_ms, 50, 100);
+    if (intiface_target_time_ms_ == next) return;
+    intiface_target_time_ms_ = next;
+    device_->set_intiface_target_time(intiface_target_time_automatic_, next);
+    auto settings = motion_bridge_settings();
+    settings.setValue("output/intifaceTargetTimeMs", next);
+    publish_output_processing_settings();
+}
 void RealtimePipeline::set_axis_gain(const int axis, const double value) {
     if (axis < 0 || axis >= 6) return;
     auto tuning = engine_.axis_tuning();
@@ -94,6 +127,19 @@ void RealtimePipeline::set_axis_gain(const int axis, const double value) {
     auto settings = motion_bridge_settings();
     settings.setValue(QString("motion/%1/gain").arg(QString::fromLatin1(kAxisNames[static_cast<std::size_t>(axis)])), item.gain);
     publish_axis_gains();
+}
+
+void RealtimePipeline::set_axis_inverted(const int axis, const bool inverted) {
+    if (axis < 0 || axis >= 6) return;
+    auto tuning = engine_.axis_tuning();
+    auto& item = tuning[static_cast<std::size_t>(axis)];
+    if (item.inverted == inverted) return;
+    item.inverted = inverted;
+    engine_.set_axis_tuning(tuning);
+    const auto axis_name = QString::fromLatin1(kAxisNames[static_cast<std::size_t>(axis)]);
+    auto settings = motion_bridge_settings();
+    settings.setValue(QString("motion/%1/inverted").arg(axis_name), inverted);
+    publish_output_processing_settings();
 }
 
 void RealtimePipeline::set_axis_range(const int axis, const double minimum, const double maximum) {
@@ -127,17 +173,17 @@ void RealtimePipeline::set_axis_preferred_travel_enabled(const int axis, const b
     publish_axis_travel_preferences();
 }
 
-void RealtimePipeline::set_axis_preferred_travel_range(const int axis, const int minimum, const int maximum) {
+void RealtimePipeline::set_axis_preferred_travel_range(const int axis, const double minimum_percent, const double maximum_percent) {
     if (axis < 0 || axis >= 6) return;
-    auto normalized_minimum = std::clamp(minimum, 0, 8999);
-    auto normalized_maximum = std::clamp(maximum, 1000, 9999);
-    if (normalized_maximum - normalized_minimum < 1000) {
-        normalized_maximum = std::min(9999, normalized_minimum + 1000);
-        normalized_minimum = std::max(0, normalized_maximum - 1000);
+    auto normalized_minimum = std::clamp(std::min(minimum_percent, maximum_percent), 0.0, 90.0);
+    auto normalized_maximum = std::clamp(std::max(minimum_percent, maximum_percent), 10.0, 100.0);
+    if (normalized_maximum - normalized_minimum < 10.0) {
+        normalized_maximum = std::min(100.0, normalized_minimum + 10.0);
+        normalized_minimum = std::max(0.0, normalized_maximum - 10.0);
     }
     auto config = engine_.axis_travel_preferences()[static_cast<std::size_t>(axis)];
-    const auto preferred_minimum = static_cast<double>(normalized_minimum) / 10000.0;
-    const auto preferred_maximum = static_cast<double>(normalized_maximum) / 10000.0;
+    const auto preferred_minimum = normalized_minimum / 100.0;
+    const auto preferred_maximum = normalized_maximum / 100.0;
     if (std::abs(config.preferred_minimum - preferred_minimum) < 0.0001 &&
         std::abs(config.preferred_maximum - preferred_maximum) < 0.0001) return;
     config.preferred_minimum = preferred_minimum;
@@ -145,8 +191,8 @@ void RealtimePipeline::set_axis_preferred_travel_range(const int axis, const int
     engine_.set_axis_travel_preference(static_cast<std::size_t>(axis), config);
     auto settings = motion_bridge_settings();
     const auto axis_name = QString::fromLatin1(kAxisNames[static_cast<std::size_t>(axis)]);
-    settings.setValue(QString("motion/%1/preferredTravelMinimum").arg(axis_name), normalized_minimum);
-    settings.setValue(QString("motion/%1/preferredTravelMaximum").arg(axis_name), normalized_maximum);
+    settings.setValue(QString("motion/%1/preferredTravelMinimum").arg(axis_name), static_cast<int>(std::lround(normalized_minimum * 100.0)));
+    settings.setValue(QString("motion/%1/preferredTravelMaximum").arg(axis_name), static_cast<int>(std::lround(normalized_maximum * 100.0)));
     last_ui_snapshot_.reset();
     publish_axis_travel_preferences();
 }
@@ -224,16 +270,21 @@ void RealtimePipeline::set_axis_output_enabled(const int axis, const bool enable
     publish_output_processing_settings();
 }
 
-void RealtimePipeline::set_axis_safe_value(const int axis, const double value) {
+void RealtimePipeline::set_axis_return_position(const int axis, const double value) {
     if (axis < 0 || axis >= 6) return;
     const auto next = std::clamp(value, 0.0, 1.0);
     auto config = output_processor_.config();
-    auto& item = config.axis_safe_value[static_cast<std::size_t>(axis)];
+    auto& item = config.axis_return_position[static_cast<std::size_t>(axis)];
     if (std::abs(item - next) < 0.0001) return;
     item = next;
     output_processor_.set_config(config);
+    engine_.set_axis_return_position(static_cast<std::size_t>(axis), next);
+    device_->set_axis_return_position(static_cast<std::size_t>(axis), next);
     auto settings = motion_bridge_settings();
-    settings.setValue(QString("output/%1/axisSafeValue").arg(QString::fromLatin1(kAxisNames[static_cast<std::size_t>(axis)])), next);
+    const auto prefix = QString("output/%1/").arg(
+        QString::fromLatin1(kAxisNames[static_cast<std::size_t>(axis)]));
+    settings.setValue(prefix + "returnPosition", next);
+    settings.remove(prefix + "axisSafeValue");
     publish_output_processing_settings();
 }
 
@@ -403,7 +454,7 @@ void RealtimePipeline::on_output_tick() {
     snapshot_ = target_snapshot_;
     const auto live_motion = snapshot_.state == MotionState::Active || snapshot_.state == MotionState::Holding;
     snapshot_.device_axes = output_processor_.process(target_snapshot_.device_axes, current, live_motion);
-    if (device_->armed()) {
+    if (device_->armed() || device_->arming()) {
         const auto nominal_ms = std::max(1, static_cast<int>(std::lround(1000.0 / output_rate_hz_)));
         const auto elapsed_us = last_output_time_.count() > 0 ? (current - last_output_time_).count() : nominal_ms * 1000LL;
         const auto interval_ms = std::clamp(static_cast<long long>(std::llround(static_cast<double>(elapsed_us) / 1000.0)), 1LL, 999LL);
@@ -431,7 +482,7 @@ void RealtimePipeline::publish_snapshot() {
     for (const auto& status : snapshot_.preferred_travel) {
         preferred_travel_statuses.push_back(QVariantMap{
             {"state", QString::fromLatin1(to_string(status.state))},
-            {"observedTravel", static_cast<int>(std::lround(status.observed_travel * 10000.0))},
+            {"observedTravel", status.observed_travel * 100.0},
             {"automaticGain", status.applied_gain},
             {"stableHalfStrokes", static_cast<int>(status.stable_half_strokes)},
         });
@@ -457,17 +508,38 @@ void RealtimePipeline::load_settings() {
     const auto default_path = QDir::homePath() + "/.f8/studio/games/fallen-doll/runtime/fd-skeleton.ndjson";
     spool_path_ = settings.value("input/spoolPath", default_path).toString();
     input_->set_spool_path(spool_path_);
-    device_->set_mode(parse_mode(settings.value("device/mode", "none").toString()));
+    const auto saved_mode = settings.value("device/mode", "none").toString().toLower();
+    const auto migrated_mode = saved_mode == u"handy" ? QStringLiteral("intiface") : saved_mode;
+    if (migrated_mode != saved_mode) settings.setValue("device/mode", migrated_mode);
+    device_->set_mode(parse_mode(migrated_mode));
     usb_port_ = settings.value("device/usbPort").toString();
     wifi_host_ = settings.value("device/wifiHost", "tcode.local").toString();
     wifi_port_ = settings.value("device/wifiPort", 8000).toInt();
     intiface_url_ = settings.value("device/intifaceUrl", "ws://127.0.0.1:12345").toString();
+    const auto legacy_auto_reconnect = settings.value("device/intifaceAutoReconnect", true).toBool();
+    auto_reconnect_ = settings.value("device/autoReconnect", legacy_auto_reconnect).toBool();
+    if (!settings.contains("device/autoReconnect")) {
+        settings.setValue("device/autoReconnect", auto_reconnect_);
+    }
+    settings.remove("device/intifaceAutoReconnect");
     device_->set_usb_port(usb_port_);
     device_->set_wifi_endpoint(wifi_host_, static_cast<quint16>(std::clamp(wifi_port_, 1, 65535)));
     device_->set_intiface_url(QUrl(intiface_url_));
-    // The Handy connection key grants cloud control of a device. Deliberately
-    // keep it in memory only instead of writing it to portable config files.
-    handy_connection_key_.clear();
+    device_->set_auto_reconnect(auto_reconnect_);
+    const auto legacy_target_time = settings.value("output/intifaceDurationMs");
+    const auto has_target_time_mode = settings.contains("output/intifaceTargetTimeAutomatic");
+    intiface_target_time_automatic_ = has_target_time_mode
+        ? settings.value("output/intifaceTargetTimeAutomatic", true).toBool()
+        : !legacy_target_time.isValid();
+    intiface_target_time_ms_ = std::clamp(
+        settings.value("output/intifaceTargetTimeMs",
+                       legacy_target_time.isValid() ? legacy_target_time : 50).toInt(),
+        50, 100);
+    settings.setValue("output/intifaceTargetTimeAutomatic", intiface_target_time_automatic_);
+    settings.setValue("output/intifaceTargetTimeMs", intiface_target_time_ms_);
+    settings.remove("output/intifaceDurationMs");
+    device_->set_intiface_target_time(
+        intiface_target_time_automatic_, intiface_target_time_ms_);
     output_rate_hz_ = std::clamp(settings.value("output/rateHz", 50).toInt(), 20, 100);
     output_timer_->setInterval(std::max(1, static_cast<int>(std::lround(1000.0 / output_rate_hz_))));
     auto output_config = output_processor_.config();
@@ -480,8 +552,19 @@ void RealtimePipeline::load_settings() {
         const auto prefix = QString("output/%1/").arg(axis_name);
         output_config.axis_output_enabled[static_cast<std::size_t>(index)] =
             settings.value(prefix + "axisOutputEnabled", true).toBool();
-        output_config.axis_safe_value[static_cast<std::size_t>(index)] =
-            settings.value(prefix + "axisSafeValue", 0.5).toDouble();
+        const auto return_position_key = prefix + "returnPosition";
+        const auto legacy_safe_value_key = prefix + "axisSafeValue";
+        const auto return_position = std::clamp(
+            settings.value(return_position_key,
+                           settings.value(legacy_safe_value_key, 0.5)).toDouble(),
+            0.0, 1.0);
+        output_config.axis_return_position[static_cast<std::size_t>(index)] = return_position;
+        engine_.set_axis_return_position(static_cast<std::size_t>(index), return_position);
+        device_->set_axis_return_position(static_cast<std::size_t>(index), return_position);
+        if (!settings.contains(return_position_key) && settings.contains(legacy_safe_value_key)) {
+            settings.setValue(return_position_key, return_position);
+        }
+        settings.remove(legacy_safe_value_key);
         output_config.speed_limit_enabled[static_cast<std::size_t>(index)] =
             settings.value(prefix + "speedLimitEnabled", legacy_speed_enabled).toBool();
         output_config.max_speed_per_second[static_cast<std::size_t>(index)] =
@@ -582,6 +665,7 @@ void RealtimePipeline::load_settings() {
         item.dead_zone = settings.value(QString("motion/%1/deadZone").arg(axis_name), item.dead_zone).toDouble();
         item.output_min = settings.value(QString("motion/%1/min").arg(axis_name), item.output_min).toDouble();
         item.output_max = settings.value(QString("motion/%1/max").arg(axis_name), item.output_max).toDouble();
+        item.inverted = settings.value(QString("motion/%1/inverted").arg(axis_name), item.inverted).toBool();
         const auto curve = settings.value(QString("motion/%1/curve").arg(axis_name), "LINEAR").toString().toUpper();
         item.curve = curve == u"SMOOTHERSTEP" ? MotionCurve::Smootherstep : curve == u"SMOOTHSTEP" ? MotionCurve::Smoothstep : MotionCurve::Linear;
     }
@@ -599,7 +683,8 @@ void RealtimePipeline::load_settings() {
 }
 
 void RealtimePipeline::publish_connection_settings() {
-    emit connection_settings_changed(usb_port_, wifi_host_, wifi_port_, intiface_url_, handy_connection_key_);
+    emit connection_settings_changed(
+        usb_port_, wifi_host_, wifi_port_, intiface_url_, auto_reconnect_);
 }
 
 void RealtimePipeline::publish_axis_gains() {
@@ -623,8 +708,8 @@ void RealtimePipeline::publish_axis_travel_preferences() {
     for (const auto& config : engine_.axis_travel_preferences()) {
         preferences.push_back(QVariantMap{
             {"enabled", config.enabled},
-            {"preferredMinimum", static_cast<int>(std::lround(config.preferred_minimum * 10000.0))},
-            {"preferredMaximum", static_cast<int>(std::lround(config.preferred_maximum * 10000.0))},
+            {"preferredMinimum", config.preferred_minimum * 100.0},
+            {"preferredMaximum", config.preferred_maximum * 100.0},
             {"maximumGain", config.maximum_gain},
         });
     }
@@ -639,13 +724,15 @@ void RealtimePipeline::publish_contact_settings() {
 void RealtimePipeline::publish_output_processing_settings() {
     QVariantList axis_settings;
     const auto& config = output_processor_.config();
+    const auto& tuning = engine_.axis_tuning();
     for (std::size_t index = 0; index < config.max_speed_per_second.size(); ++index) {
         const auto& smart_limit = config.smart_limit[index];
         axis_settings.push_back(QVariantMap{
             {"axisEnabled", config.axis_output_enabled[index]},
-            {"safeValue", config.axis_safe_value[index]},
+            {"returnPosition", config.axis_return_position[index]},
             {"speedEnabled", config.speed_limit_enabled[index]},
             {"maxSpeed", config.max_speed_per_second[index]},
+            {"inverted", tuning[index].inverted},
             {"smartLimitEnabled", smart_limit.enabled},
             {"smartLimitInputAxis", static_cast<int>(smart_limit.input_axis)},
             {"smartLimitMode", smart_limit.mode == SmartLimitMode::Speed ? "speed" : "value"},
@@ -658,6 +745,8 @@ void RealtimePipeline::publish_output_processing_settings() {
     }
     emit output_processing_settings_changed(
         output_rate_hz_,
+        intiface_target_time_automatic_,
+        intiface_target_time_ms_,
         config.soft_start_enabled,
         static_cast<int>(config.soft_start_for.count()),
         axis_settings);

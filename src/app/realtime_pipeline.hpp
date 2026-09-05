@@ -28,11 +28,14 @@ public slots:
     void set_usb_port(const QString& port);
     void set_wifi_endpoint(const QString& host, int port);
     void set_intiface_url(const QString& url);
-    void set_handy_connection_key(const QString& key);
+    void set_auto_reconnect(bool enabled);
+    void set_intiface_target_time_automatic(bool automatic);
+    void set_intiface_target_time_ms(int duration_ms);
     void set_axis_gain(int axis, double value);
+    void set_axis_inverted(int axis, bool inverted);
     void set_axis_range(int axis, double minimum, double maximum);
     void set_axis_preferred_travel_enabled(int axis, bool enabled);
-    void set_axis_preferred_travel_range(int axis, int minimum, int maximum);
+    void set_axis_preferred_travel_range(int axis, double minimum_percent, double maximum_percent);
     void reset_axis_travel_learning(int axis);
     void set_safety_distance_enabled(bool enabled);
     void set_safety_distance_cm(double centimeters);
@@ -40,7 +43,7 @@ public slots:
     void set_soft_start_enabled(bool enabled);
     void set_soft_start_duration_ms(int value);
     void set_axis_output_enabled(int axis, bool enabled);
-    void set_axis_safe_value(int axis, double value);
+    void set_axis_return_position(int axis, double value);
     void set_axis_speed_limit_enabled(int axis, bool enabled);
     void set_axis_speed_limit(int axis, double value);
     void set_axis_smart_limit_enabled(int axis, bool enabled);
@@ -58,15 +61,18 @@ signals:
                         const QVariantList& raw, const QVariantList& smart_limit_inputs,
                         const QVariantList& device, const QVariantList& preferred_travel_statuses);
     void stream_status_changed(bool connected, const QString& text);
-    void output_status_changed(const QString& text, bool armed, const QString& mode);
+    void output_status_changed(const QString& text, bool armed, bool connecting, const QString& mode);
     void spool_path_changed(const QString& path);
     void connection_settings_changed(const QString& usb_port, const QString& wifi_host, int wifi_port,
-                                     const QString& intiface_url, const QString& handy_connection_key);
+                                     const QString& intiface_url, bool auto_reconnect);
     void axis_gains_changed(const QVariantList& gains);
     void axis_ranges_changed(const QVariantList& minimums, const QVariantList& maximums);
     void axis_travel_preferences_changed(const QVariantList& preferences);
     void contact_settings_changed(bool safety_distance_enabled, double safety_distance_cm);
-    void output_processing_settings_changed(int rate_hz, bool soft_start_enabled, int soft_start_duration_ms,
+    void output_processing_settings_changed(int rate_hz,
+                                            bool intiface_target_time_automatic,
+                                            int intiface_target_time_ms,
+                                            bool soft_start_enabled, int soft_start_duration_ms,
                                             const QVariantList& axis_output_settings);
     void theme_changed(const QString& theme);
     void reference_participants_changed(const QVariantList& references);
@@ -103,13 +109,16 @@ private:
     std::optional<motion_bridge::EngineSnapshot> last_ui_snapshot_;
     std::chrono::microseconds last_input_time_{};
     std::chrono::microseconds last_output_time_{};
+    bool device_output_active_{};
     int output_rate_hz_{50};
     QString spool_path_;
     QString usb_port_;
     QString wifi_host_{"tcode.local"};
     int wifi_port_{8000};
     QString intiface_url_{"ws://127.0.0.1:12345"};
-    QString handy_connection_key_;
+    bool auto_reconnect_{true};
+    bool intiface_target_time_automatic_{true};
+    int intiface_target_time_ms_{50};
     QString theme_{"dark"};
     QString reference_plane_label_;
     QVariantList reference_participants_;

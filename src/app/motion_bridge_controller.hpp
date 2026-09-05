@@ -21,13 +21,14 @@ class MotionBridgeController final : public QObject {
     Q_PROPERTY(QVariantList smartLimitInputAxes READ smart_limit_input_axes NOTIFY snapshotChanged)
     Q_PROPERTY(QVariantList deviceAxes READ device_axes NOTIFY snapshotChanged)
     Q_PROPERTY(bool armed READ armed NOTIFY statusChanged)
+    Q_PROPERTY(bool outputConnecting READ output_connecting NOTIFY statusChanged)
     Q_PROPERTY(QString outputMode READ output_mode NOTIFY statusChanged)
     Q_PROPERTY(QString spoolPath READ spool_path NOTIFY statusChanged)
     Q_PROPERTY(QString usbPort READ usb_port NOTIFY settingsChanged)
     Q_PROPERTY(QString wifiHost READ wifi_host NOTIFY settingsChanged)
     Q_PROPERTY(int wifiPort READ wifi_port NOTIFY settingsChanged)
     Q_PROPERTY(QString intifaceUrl READ intiface_url NOTIFY settingsChanged)
-    Q_PROPERTY(QString handyConnectionKey READ handy_connection_key NOTIFY settingsChanged)
+    Q_PROPERTY(bool autoReconnect READ auto_reconnect NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList axisGains READ axis_gains NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList axisMinimums READ axis_minimums NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList axisMaximums READ axis_maximums NOTIFY settingsChanged)
@@ -36,6 +37,8 @@ class MotionBridgeController final : public QObject {
     Q_PROPERTY(bool safetyDistanceEnabled READ safety_distance_enabled NOTIFY settingsChanged)
     Q_PROPERTY(double safetyDistanceCm READ safety_distance_cm NOTIFY settingsChanged)
     Q_PROPERTY(int outputRateHz READ output_rate_hz NOTIFY settingsChanged)
+    Q_PROPERTY(bool intifaceTargetTimeAutomatic READ intiface_target_time_automatic NOTIFY settingsChanged)
+    Q_PROPERTY(int intifaceTargetTimeMs READ intiface_target_time_ms NOTIFY settingsChanged)
     Q_PROPERTY(bool softStartEnabled READ soft_start_enabled NOTIFY settingsChanged)
     Q_PROPERTY(int softStartDurationMs READ soft_start_duration_ms NOTIFY settingsChanged)
     Q_PROPERTY(QVariantList axisOutputSettings READ axis_output_settings NOTIFY settingsChanged)
@@ -60,13 +63,14 @@ public:
     [[nodiscard]] QVariantList smart_limit_input_axes() const;
     [[nodiscard]] QVariantList device_axes() const;
     [[nodiscard]] bool armed() const;
+    [[nodiscard]] bool output_connecting() const;
     [[nodiscard]] QString output_mode() const;
     [[nodiscard]] QString spool_path() const;
     [[nodiscard]] QString usb_port() const;
     [[nodiscard]] QString wifi_host() const;
     [[nodiscard]] int wifi_port() const;
     [[nodiscard]] QString intiface_url() const;
-    [[nodiscard]] QString handy_connection_key() const;
+    [[nodiscard]] bool auto_reconnect() const;
     [[nodiscard]] QVariantList axis_gains() const;
     [[nodiscard]] QVariantList axis_minimums() const;
     [[nodiscard]] QVariantList axis_maximums() const;
@@ -75,6 +79,8 @@ public:
     [[nodiscard]] bool safety_distance_enabled() const;
     [[nodiscard]] double safety_distance_cm() const;
     [[nodiscard]] int output_rate_hz() const;
+    [[nodiscard]] bool intiface_target_time_automatic() const;
+    [[nodiscard]] int intiface_target_time_ms() const;
     [[nodiscard]] bool soft_start_enabled() const;
     [[nodiscard]] int soft_start_duration_ms() const;
     [[nodiscard]] QVariantList axis_output_settings() const;
@@ -91,11 +97,14 @@ public:
     Q_INVOKABLE void set_usb_port(const QString& port);
     Q_INVOKABLE void set_wifi_endpoint(const QString& host, int port);
     Q_INVOKABLE void set_intiface_url(const QString& url);
-    Q_INVOKABLE void set_handy_connection_key(const QString& key);
+    Q_INVOKABLE void set_auto_reconnect(bool enabled);
+    Q_INVOKABLE void set_intiface_target_time_automatic(bool automatic);
+    Q_INVOKABLE void set_intiface_target_time_ms(int duration_ms);
     Q_INVOKABLE void set_axis_gain(int axis, double value);
+    Q_INVOKABLE void set_axis_inverted(int axis, bool inverted);
     Q_INVOKABLE void set_axis_range(int axis, double minimum, double maximum);
     Q_INVOKABLE void set_axis_preferred_travel_enabled(int axis, bool enabled);
-    Q_INVOKABLE void set_axis_preferred_travel_range(int axis, int minimum, int maximum);
+    Q_INVOKABLE void set_axis_preferred_travel_range(int axis, double minimum_percent, double maximum_percent);
     Q_INVOKABLE void reset_axis_travel_learning(int axis);
     Q_INVOKABLE void set_safety_distance_enabled(bool enabled);
     Q_INVOKABLE void set_safety_distance_cm(double centimeters);
@@ -103,7 +112,7 @@ public:
     Q_INVOKABLE void set_soft_start_enabled(bool enabled);
     Q_INVOKABLE void set_soft_start_duration_ms(int value);
     Q_INVOKABLE void set_axis_output_enabled(int axis, bool enabled);
-    Q_INVOKABLE void set_axis_safe_value(int axis, double value);
+    Q_INVOKABLE void set_axis_return_position(int axis, double value);
     Q_INVOKABLE void set_axis_speed_limit_enabled(int axis, bool enabled);
     Q_INVOKABLE void set_axis_speed_limit(int axis, double value);
     Q_INVOKABLE void set_axis_smart_limit_enabled(int axis, bool enabled);
@@ -142,11 +151,12 @@ private:
     QString output_mode_{"none"};
     QString spool_path_;
     bool armed_{};
+    bool output_connecting_{};
     QString usb_port_;
     QString wifi_host_{"tcode.local"};
     int wifi_port_{8000};
     QString intiface_url_{"ws://127.0.0.1:12345"};
-    QString handy_connection_key_;
+    bool auto_reconnect_{true};
     QVariantList axis_gains_{1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
     QVariantList axis_minimums_{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     QVariantList axis_maximums_{1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
@@ -155,6 +165,8 @@ private:
     bool safety_distance_enabled_{};
     double safety_distance_cm_{10.0};
     int output_rate_hz_{50};
+    bool intiface_target_time_automatic_{true};
+    int intiface_target_time_ms_{50};
     bool soft_start_enabled_{true};
     int soft_start_duration_ms_{600};
     QVariantList axis_output_settings_;

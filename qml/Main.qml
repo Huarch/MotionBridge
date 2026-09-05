@@ -510,6 +510,32 @@ ApplicationWindow {
         background: Rectangle { radius: 10; color: window.fieldSurface; border.color: parent.activeFocus ? "#596FE3" : window.outline }
     }
 
+    component ComboChevron: Item {
+        implicitWidth: 16
+        implicitHeight: 16
+        property color strokeColor: window.textSecondary
+
+        onStrokeColorChanged: chevronCanvas.requestPaint()
+
+        Canvas {
+            id: chevronCanvas
+            anchors.fill: parent
+            onPaint: {
+                const context = getContext("2d")
+                context.clearRect(0, 0, width, height)
+                context.strokeStyle = parent.strokeColor
+                context.lineWidth = 1.5
+                context.lineCap = "round"
+                context.lineJoin = "round"
+                context.beginPath()
+                context.moveTo(4.5, 6.25)
+                context.lineTo(8, 9.75)
+                context.lineTo(11.5, 6.25)
+                context.stroke()
+            }
+        }
+    }
+
     component SerialPortCombo: ComboBox {
         id: portControl
         Layout.fillWidth: true
@@ -526,9 +552,9 @@ ApplicationWindow {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
-        indicator: Label {
-            x: portControl.width - width - 12; anchors.verticalCenter: parent.verticalCenter
-            text: "⌄"; color: window.textSecondary; font.pixelSize: 15
+        indicator: ComboChevron {
+            x: portControl.width - width - 10
+            y: Math.round((portControl.height - height) / 2)
         }
         background: Rectangle {
             radius: 10; color: window.fieldSurface
@@ -591,9 +617,9 @@ ApplicationWindow {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
-        indicator: Label {
-            x: participantControl.width - width - 12; anchors.verticalCenter: parent.verticalCenter
-            text: "⌄"; color: window.textSecondary; font.pixelSize: 15
+        indicator: ComboChevron {
+            x: participantControl.width - width - 10
+            y: Math.round((participantControl.height - height) / 2)
         }
         background: Rectangle {
             radius: 10; color: window.fieldSurface
@@ -782,13 +808,19 @@ ApplicationWindow {
                         Item { Layout.fillWidth: true }
                         StatusChip { caption: qsTr("STREAM"); value: companion.streamConnected ? qsTr("ONLINE") : qsTr("WAITING"); accent: companion.streamConnected ? "#58D9FA" : "#F1B865" }
                         StatusChip { caption: qsTr("MOTION"); value: window.motionStateLabel(companion.motionState); accent: window.motionIsLive(companion.motionState) ? "#56E3B1" : "#7E8CA2" }
-                        StatusChip { caption: qsTr("DEVICE"); value: companion.armed ? qsTr("ARMED") : companion.outputMode === "none" ? qsTr("OFF") : companion.outputMode.toUpperCase(); accent: companion.armed ? "#56E3B1" : "#F1B865" }
+                        StatusChip {
+                            caption: qsTr("DEVICE")
+                            value: companion.armed ? qsTr("ARMED")
+                                  : companion.outputConnecting ? qsTr("CONNECTING")
+                                  : companion.outputMode === "none" ? qsTr("OFF") : companion.outputMode.toUpperCase()
+                            accent: companion.armed ? "#56E3B1" : "#F1B865"
+                        }
                     }
                     Button {
                         Layout.preferredWidth: 128; Layout.preferredHeight: 42
-                        text: companion.armed ? qsTr("STOP OUTPUT") : qsTr("ARM OUTPUT")
-                        onClicked: companion.set_armed(!companion.armed)
-                        background: Rectangle { radius: 12; color: companion.armed ? "#DA5361" : window.primary; opacity: parent.down ? 0.78 : 1.0 }
+                        text: companion.armed || companion.outputConnecting ? qsTr("STOP OUTPUT") : qsTr("ARM OUTPUT")
+                        onClicked: companion.set_armed(!(companion.armed || companion.outputConnecting))
+                        background: Rectangle { radius: 12; color: companion.armed || companion.outputConnecting ? "#DA5361" : window.primary; opacity: parent.down ? 0.78 : 1.0 }
                         contentItem: Label { text: parent.text; color: "white"; font.pixelSize: 11; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
                 }
@@ -801,7 +833,7 @@ ApplicationWindow {
                 color: window.footerSurface
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 18; spacing: 6
-                    DisclosureButton { label: qsTr("Device connection"); detail: qsTr("USB · Wi-Fi · Intiface · Handy"); opened: window.connectionExpanded; onClicked: window.toggleConnection() }
+                    DisclosureButton { label: qsTr("Device connection"); detail: qsTr("USB · Wi-Fi · Intiface"); opened: window.connectionExpanded; onClicked: window.toggleConnection() }
                     DisclosureButton { label: qsTr("Motion tuning"); detail: "L0 · L1 · L2 · R0 · R1 · R2"; opened: window.tuningExpanded; onClicked: window.toggleTuning() }
                     ViewerButton { label: qsTr("3D preview"); detail: qsTr("Separate window"); opened: previewWindow.visible; onClicked: window.togglePreview() }
                     Label { text: qsTr("OUTPUT SAFE"); color: window.textMuted; font.pixelSize: 9; font.bold: true; font.letterSpacing: 0.8; Layout.leftMargin: 10 }
@@ -858,8 +890,73 @@ ApplicationWindow {
                                         Label { text: qsTr("One transport at a time"); color: window.textMuted; font.pixelSize: 10 }
                                     }
                                     Item { Layout.fillWidth: true }
-                                    Rectangle { width: 70; height: 24; radius: 12; color: companion.armed ? (window.darkTheme ? "#173B34" : "#DDF7ED") : window.panelAlt; border.color: window.outline
-                                        Label { anchors.centerIn: parent; text: companion.armed ? qsTr("ARMED") : qsTr("SAFE"); color: companion.armed ? (window.darkTheme ? "#5BE4B5" : "#167A5B") : window.textMuted; font.pixelSize: 9; font.bold: true }
+                                    Button {
+                                        id: autoReconnectButton
+                                        visible: companion.outputMode !== "none"
+                                        Layout.preferredWidth: 132
+                                        Layout.preferredHeight: 26
+                                        onClicked: companion.set_auto_reconnect(!companion.autoReconnect)
+                                        background: Rectangle {
+                                            radius: 8
+                                            color: companion.autoReconnect
+                                                   ? (window.darkTheme ? "#173728" : "#E8F8EF")
+                                                   : window.panelAlt
+                                            border.width: 1
+                                            border.color: companion.autoReconnect ? "#45C98F" : window.outline
+                                        }
+                                        contentItem: RowLayout {
+                                            spacing: 6
+                                            Item {
+                                                Layout.preferredWidth: 16
+                                                Layout.preferredHeight: 16
+                                                Canvas {
+                                                    anchors.fill: parent
+                                                    onPaint: {
+                                                        const ctx = getContext("2d")
+                                                        ctx.clearRect(0, 0, width, height)
+                                                        ctx.strokeStyle = companion.autoReconnect ? "#45C98F" : window.textMuted
+                                                        ctx.lineWidth = 1.5
+                                                        ctx.lineCap = "round"
+                                                        ctx.lineJoin = "round"
+                                                        ctx.beginPath()
+                                                        ctx.arc(8, 8, 5, Math.PI * 0.20, Math.PI * 1.35)
+                                                        ctx.moveTo(2.7, 8.6); ctx.lineTo(2.3, 12.1); ctx.lineTo(5.8, 11.5)
+                                                        ctx.arc(8, 8, 5, Math.PI * 1.20, Math.PI * 0.35, true)
+                                                        ctx.moveTo(13.3, 7.4); ctx.lineTo(13.7, 3.9); ctx.lineTo(10.2, 4.5)
+                                                        ctx.stroke()
+                                                    }
+                                                    Connections {
+                                                        target: companion
+                                                        function onSettingsChanged() { parent.requestPaint() }
+                                                    }
+                                                }
+                                            }
+                                            Label {
+                                                Layout.fillWidth: true
+                                                text: qsTr("AUTO RECONNECT")
+                                                color: companion.autoReconnect ? "#45C98F" : window.textMuted
+                                                font.pixelSize: 8
+                                                font.bold: true
+                                                font.letterSpacing: 0.45
+                                                horizontalAlignment: Text.AlignHCenter
+                                            }
+                                            Label {
+                                                text: companion.autoReconnect ? qsTr("ON") : qsTr("OFF")
+                                                color: companion.autoReconnect ? "#45C98F" : window.textMuted
+                                                font.pixelSize: 8
+                                                font.bold: true
+                                            }
+                                        }
+                                        AppToolTip {
+                                            visible: autoReconnectButton.hovered
+                                            text: companion.outputMode === "wifi"
+                                                ? qsTr("Recreates Wi-Fi output after a local network, address, or UDP socket error. UDP cannot confirm whether the remote device itself is connected. Manual STOP OUTPUT always cancels reconnection.")
+                                                : qsTr("After an unexpected USB, Intiface, or device disconnect, reconnect automatically and resume the output that you already enabled. Manual STOP OUTPUT always cancels reconnection.")
+                                            darkTheme: window.darkTheme
+                                        }
+                                    }
+                                    Rectangle { Layout.preferredWidth: companion.outputConnecting ? 92 : 70; Layout.preferredHeight: 24; radius: 12; color: companion.armed ? (window.darkTheme ? "#173B34" : "#DDF7ED") : window.panelAlt; border.color: window.outline
+                                        Label { anchors.centerIn: parent; text: companion.armed ? qsTr("ARMED") : companion.outputConnecting ? qsTr("CONNECTING") : qsTr("SAFE"); color: companion.armed ? (window.darkTheme ? "#5BE4B5" : "#167A5B") : window.textMuted; font.pixelSize: 9; font.bold: true }
                                     }
                                 }
                                 RowLayout { Layout.fillWidth: true; spacing: 6
@@ -867,7 +964,24 @@ ApplicationWindow {
                                     ModeButton { modeName: "usb"; label: "USB" }
                                     ModeButton { modeName: "wifi"; label: "WI-FI" }
                                     ModeButton { modeName: "intiface"; label: "INTIFACE" }
-                                    ModeButton { modeName: "handy"; label: "HANDY" }
+                                }
+                                Label {
+                                    visible: companion.outputMode === "intiface"
+                                    Layout.fillWidth: true
+                                    text: qsTr("Connect devices in Intiface Central first, then ARM OUTPUT. MotionBridge maps L0 0–100% to each device's advertised range. Timed-position linear devices, mainly Handy, use a dedicated 20 Hz clock. Target arrival time is automatic by default, with an optional manual override in Output processing.")
+                                    wrapMode: Text.WordWrap
+                                    color: window.textMuted
+                                    font.pixelSize: 9
+                                    lineHeight: 1.12
+                                }
+                                Label {
+                                    visible: companion.outputMode !== "none"
+                                    Layout.fillWidth: true
+                                    text: qsTr("OUTPUT STATUS: %1").arg(companion.outputStatus)
+                                    color: companion.armed ? "#56E3B1" : "#F1B865"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                    wrapMode: Text.WordWrap
                                 }
                                 GridLayout {
                                     Layout.fillWidth: true
@@ -923,17 +1037,6 @@ ApplicationWindow {
                                         Layout.fillWidth: true; spacing: 4
                                         Label { text: qsTr("INTIFACE URL"); color: window.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 0.7 }
                                         DarkField { text: companion.intifaceUrl; placeholderText: qsTr("Intiface Desktop URL"); onEditingFinished: companion.set_intiface_url(text) }
-                                    }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true; spacing: 4
-                                        Label { text: qsTr("HANDY CONNECTION KEY"); color: window.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 0.7 }
-                                        DarkField {
-                                            text: companion.handyConnectionKey
-                                            placeholderText: qsTr("Handyverse connection key")
-                                            echoMode: TextInput.Password
-                                            onEditingFinished: companion.set_handy_connection_key(text)
-                                        }
-                                        Label { text: qsTr("Session only · find it in Handyverse"); color: window.textMuted; font.pixelSize: 8 }
                                     }
                                     ColumnLayout {
                                         Layout.fillWidth: true; spacing: 4
@@ -1040,6 +1143,40 @@ ApplicationWindow {
                                     from: 20; to: 100; stepSize: 5
                                     value: companion.outputRateHz
                                     onPressedChanged: if (!pressed) companion.set_output_rate_hz(Math.round(value))
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true; Layout.preferredWidth: 280; spacing: 3
+                                RowLayout {
+                                    Layout.preferredHeight: 16
+                                    Label { text: qsTr("TARGET ARRIVAL TIME"); color: window.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 0.7 }
+                                    MiniToggle {
+                                        checked: companion.intifaceTargetTimeAutomatic
+                                        onToggled: companion.set_intiface_target_time_automatic(checked)
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                    Label {
+                                        text: companion.intifaceTargetTimeAutomatic
+                                            ? qsTr("AUTO")
+                                            : companion.intifaceTargetTimeMs + " ms"
+                                        color: window.textSecondary
+                                        font.pixelSize: 9
+                                        font.family: "Cascadia Mono"
+                                    }
+                                }
+                                ThinSlider {
+                                    id: intifaceTargetTimeSlider
+                                    Layout.fillWidth: true
+                                    from: 50; to: 100; stepSize: 5
+                                    value: companion.intifaceTargetTimeMs
+                                    enabled: !companion.intifaceTargetTimeAutomatic
+                                    opacity: enabled ? 1.0 : 0.42
+                                    onPressedChanged: if (!pressed) companion.set_intiface_target_time_ms(Math.round(value))
+                                    AppToolTip {
+                                        visible: intifaceTargetTimeSlider.hovered
+                                        text: qsTr("Only used by timed-position linear devices through Intiface, mainly Handy. Automatic follows the real 20 Hz output interval, normally 50 ms. Manual values from 50–100 ms can soften movement, but higher values add response delay.")
+                                        darkTheme: window.darkTheme
+                                    }
                                 }
                             }
                             ColumnLayout {

@@ -26,7 +26,7 @@ struct OutputSignalConfig {
     bool soft_start_enabled{true};
     std::chrono::milliseconds soft_start_for{600};
     std::array<bool, 6> axis_output_enabled{true, true, true, true, true, true};
-    std::array<double, 6> axis_safe_value{0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+    std::array<double, 6> axis_return_position{0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
     std::array<AxisSmartLimit, 6> smart_limit;
     std::array<bool, 6> speed_limit_enabled{};
     std::array<double, 6> max_speed_per_second{4.0, 4.0, 4.0, 4.0, 4.0, 4.0};
@@ -42,7 +42,7 @@ public:
     void set_config(OutputSignalConfig config);
     [[nodiscard]] const OutputSignalConfig& config() const noexcept;
 
-    // Every arm begins at each axis' safe position. Soft start begins only
+    // Every arm begins at each axis' return position. Soft start begins only
     // after the first live target arrives.
     void arm(std::chrono::microseconds now);
     void disarm();

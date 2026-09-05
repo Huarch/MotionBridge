@@ -56,7 +56,7 @@ OutputSignalProcessor::OutputSignalProcessor(OutputSignalConfig config) { set_co
 void OutputSignalProcessor::set_config(OutputSignalConfig config) {
     config.soft_start_for = std::clamp(config.soft_start_for, std::chrono::milliseconds{0}, std::chrono::milliseconds{3000});
     for (std::size_t index = 0; index < config.max_speed_per_second.size(); ++index) {
-        config.axis_safe_value[index] = std::clamp(config.axis_safe_value[index], 0.0, 1.0);
+        config.axis_return_position[index] = std::clamp(config.axis_return_position[index], 0.0, 1.0);
         config.max_speed_per_second[index] = std::clamp(config.max_speed_per_second[index], 0.25, 10.0);
         auto& smart_limit = config.smart_limit[index];
         smart_limit.target_value = std::clamp(smart_limit.target_value, 0.0, 1.0);
@@ -69,8 +69,8 @@ const OutputSignalConfig& OutputSignalProcessor::config() const noexcept { retur
 
 void OutputSignalProcessor::arm(const std::chrono::microseconds now) {
     for (std::size_t index = 0; index < current_.values.size(); ++index) {
-        current_[index] = config_.axis_safe_value[index];
-        smart_limit_inputs_[index] = config_.axis_safe_value[index];
+        current_[index] = config_.axis_return_position[index];
+        smart_limit_inputs_[index] = config_.axis_return_position[index];
     }
     armed_ = true;
     live_started_ = false;
@@ -80,8 +80,8 @@ void OutputSignalProcessor::arm(const std::chrono::microseconds now) {
 
 void OutputSignalProcessor::disarm() {
     for (std::size_t index = 0; index < current_.values.size(); ++index) {
-        current_[index] = config_.axis_safe_value[index];
-        smart_limit_inputs_[index] = config_.axis_safe_value[index];
+        current_[index] = config_.axis_return_position[index];
+        smart_limit_inputs_[index] = config_.axis_return_position[index];
     }
     armed_ = false;
     live_started_ = false;
@@ -112,7 +112,7 @@ Axes OutputSignalProcessor::process(
     if (!live_motion) {
         current_ = target;
         for (std::size_t index = 0; index < current_.values.size(); ++index) {
-            if (!config_.axis_output_enabled[index]) current_[index] = config_.axis_safe_value[index];
+            if (!config_.axis_output_enabled[index]) current_[index] = config_.axis_return_position[index];
         }
         smart_limit_inputs_ = current_;
         last_process_at_ = now;
@@ -124,15 +124,15 @@ Axes OutputSignalProcessor::process(
         const auto elapsed_ms = static_cast<double>((now - live_started_at_).count()) / 1000.0;
         const auto progress = smoothstep(elapsed_ms / static_cast<double>(config_.soft_start_for.count()));
         for (std::size_t index = 0; index < candidate.values.size(); ++index) {
-            const auto safe_value = config_.axis_safe_value[index];
-            candidate[index] = safe_value + (target[index] - safe_value) * progress;
+            const auto return_position = config_.axis_return_position[index];
+            candidate[index] = return_position + (target[index] - return_position) * progress;
         }
     }
 
-    // Disabled driver axes expose their safe value to dependent smart limits.
+    // Disabled driver axes expose their return position to dependent smart limits.
     for (std::size_t index = 0; index < candidate.values.size(); ++index) {
         if (!config_.axis_output_enabled[index]) {
-            candidate[index] = config_.axis_safe_value[index];
+            candidate[index] = config_.axis_return_position[index];
         }
     }
 

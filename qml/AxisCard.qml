@@ -33,16 +33,17 @@ Rectangle {
     readonly property color enabledGreen: "#38D47A"
     readonly property color disabledRed: "#F06A5D"
     readonly property bool axisOutputEnabled: !outputSettings || outputSettings.axisEnabled === undefined || outputSettings.axisEnabled === true
-    readonly property real axisSafeValue: outputSettings && outputSettings.safeValue !== undefined ? outputSettings.safeValue : 0.5
+    readonly property real axisReturnPosition: outputSettings && outputSettings.returnPosition !== undefined ? outputSettings.returnPosition : 0.5
     readonly property bool speedEnabled: outputSettings && outputSettings.speedEnabled === true
+    readonly property bool axisInverted: outputSettings && outputSettings.inverted === true
     readonly property real speedLimit: outputSettings && outputSettings.maxSpeed !== undefined ? outputSettings.maxSpeed : 4.0
     readonly property var axisLabels: ["L0", "L1", "L2", "R0", "R1", "R2"]
     readonly property bool preferredTravelEnabled: travelPreference && travelPreference.enabled === true
-    readonly property int preferredMinimum: travelPreference && travelPreference.preferredMinimum !== undefined ? travelPreference.preferredMinimum : (axisIndex === 0 ? 0 : 2000)
-    readonly property int preferredMaximum: travelPreference && travelPreference.preferredMaximum !== undefined ? travelPreference.preferredMaximum : (axisIndex === 0 ? 6000 : 8000)
+    readonly property real preferredMinimum: travelPreference && travelPreference.preferredMinimum !== undefined ? travelPreference.preferredMinimum : (axisIndex === 0 ? 0 : 20)
+    readonly property real preferredMaximum: travelPreference && travelPreference.preferredMaximum !== undefined ? travelPreference.preferredMaximum : (axisIndex === 0 ? 60 : 80)
     readonly property real preferredTravelMaximumGain: travelPreference && travelPreference.maximumGain !== undefined ? travelPreference.maximumGain : (axisIndex < 3 ? 4.0 : 2.0)
     readonly property string preferredTravelState: travelStatus && travelStatus.state !== undefined ? travelStatus.state : "disabled"
-    readonly property int observedTravel: travelStatus && travelStatus.observedTravel !== undefined ? travelStatus.observedTravel : 0
+    readonly property real observedTravel: travelStatus && travelStatus.observedTravel !== undefined ? travelStatus.observedTravel : 0
     readonly property real automaticGain: travelStatus && travelStatus.automaticGain !== undefined ? travelStatus.automaticGain : 1.0
     readonly property int stableHalfStrokes: travelStatus && travelStatus.stableHalfStrokes !== undefined ? travelStatus.stableHalfStrokes : 0
     readonly property bool smartLimitEnabled: outputSettings && outputSettings.smartLimitEnabled === true
@@ -59,7 +60,7 @@ Rectangle {
     function preferredTravelStatusText() {
         if (!root.preferredTravelEnabled || root.preferredTravelState === "disabled") return qsTr("Off")
         if (root.preferredTravelState === "learning") return qsTr("Learning · %1/6").arg(Math.min(6, root.stableHalfStrokes))
-        if (root.preferredTravelState === "limited") return qsTr("%1× limit · %2 travel").arg(root.preferredTravelMaximumGain.toFixed(0)).arg(root.observedTravel.toString().padStart(4, "0"))
+        if (root.preferredTravelState === "limited") return qsTr("%1× limit · %2% travel").arg(root.preferredTravelMaximumGain.toFixed(0)).arg(root.observedTravel.toFixed(1))
         return qsTr("Locked · %1×").arg(root.automaticGain.toFixed(2))
     }
 
@@ -169,6 +170,89 @@ Rectangle {
         }
     }
 
+    component AxisFunctionButton: ToolButton {
+        id: functionButton
+        property string iconKind
+        property string toolTipText
+        property bool emphasized: false
+        property color emphasisColor: root.accent
+        property color emphasisSurface: root.darkTheme ? "#173444" : "#E6F7FC"
+        signal activated()
+
+        Layout.preferredWidth: 24
+        Layout.preferredHeight: 24
+        onClicked: activated()
+        background: Rectangle {
+            radius: 6
+            color: functionButton.emphasized
+                   ? functionButton.emphasisSurface
+                   : functionButton.hovered ? root.valueSurface : "transparent"
+            border.width: functionButton.emphasized ? 1 : 0
+            border.color: functionButton.emphasisColor
+        }
+        contentItem: Canvas {
+            id: functionIcon
+            anchors.fill: parent
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+                ctx.strokeStyle = functionButton.emphasized
+                                  ? functionButton.emphasisColor : root.secondaryText
+                ctx.fillStyle = ctx.strokeStyle
+                ctx.lineWidth = 1.45
+                ctx.lineCap = "round"
+                ctx.lineJoin = "round"
+                ctx.beginPath()
+                if (functionButton.iconKind === "invert") {
+                    ctx.moveTo(5, 8); ctx.lineTo(19, 8)
+                    ctx.moveTo(15.5, 4.8); ctx.lineTo(19, 8); ctx.lineTo(15.5, 11.2)
+                    ctx.moveTo(19, 16); ctx.lineTo(5, 16)
+                    ctx.moveTo(8.5, 12.8); ctx.lineTo(5, 16); ctx.lineTo(8.5, 19.2)
+                } else if (functionButton.iconKind === "range") {
+                    ctx.moveTo(5, 12); ctx.lineTo(19, 12)
+                    ctx.moveTo(5, 8); ctx.lineTo(5, 16)
+                    ctx.moveTo(19, 8); ctx.lineTo(19, 16)
+                    ctx.moveTo(8, 9); ctx.lineTo(5, 12); ctx.lineTo(8, 15)
+                    ctx.moveTo(16, 9); ctx.lineTo(19, 12); ctx.lineTo(16, 15)
+                } else if (functionButton.iconKind === "return") {
+                    ctx.moveTo(4, 12); ctx.lineTo(11, 12)
+                    ctx.moveTo(8, 9); ctx.lineTo(11, 12); ctx.lineTo(8, 15)
+                    ctx.arc(16, 12, 4, 0, Math.PI * 2)
+                    ctx.moveTo(16, 8); ctx.lineTo(16, 16)
+                    ctx.moveTo(12, 12); ctx.lineTo(20, 12)
+                } else if (functionButton.iconKind === "smart") {
+                    ctx.moveTo(5, 5); ctx.lineTo(5, 19); ctx.lineTo(20, 19)
+                    ctx.moveTo(7, 7)
+                    ctx.quadraticCurveTo(12, 7, 14, 12)
+                    ctx.quadraticCurveTo(16, 16, 19, 16)
+                } else {
+                    ctx.arc(12, 13, 6.5, Math.PI * 0.85, Math.PI * 2.15)
+                    ctx.moveTo(12, 13); ctx.lineTo(15.8, 9.2)
+                }
+                ctx.stroke()
+                if (functionButton.iconKind === "speed") {
+                    ctx.beginPath(); ctx.arc(12, 13, 1.2, 0, Math.PI * 2); ctx.fill()
+                } else if (functionButton.iconKind === "smart") {
+                    ctx.beginPath(); ctx.arc(9.5, 7.7, 1.15, 0, Math.PI * 2); ctx.fill()
+                    ctx.beginPath(); ctx.arc(16.2, 15.2, 1.15, 0, Math.PI * 2); ctx.fill()
+                }
+            }
+            Connections {
+                target: functionButton
+                function onEmphasizedChanged() { functionIcon.requestPaint() }
+                function onEmphasisColorChanged() { functionIcon.requestPaint() }
+                function onIconKindChanged() { functionIcon.requestPaint() }
+            }
+        }
+        AppToolTip {
+            visible: functionButton.hovered
+            text: functionButton.toolTipText
+            darkTheme: root.darkTheme
+        }
+    }
+
     function openPopupNear(button, popup) {
         const overlay = Overlay.overlay
         if (!overlay) {
@@ -180,6 +264,13 @@ Rectangle {
         const above = button.mapToItem(overlay, 0, -popup.height - 7).y
         popup.y = point.y + popup.height + 8 <= overlay.height ? point.y : Math.max(8, above)
         popup.open()
+    }
+
+    function closeAxisPopups() {
+        preferredTravelPopup.close()
+        returnPositionPopup.close()
+        smartLimitPopup.close()
+        speedPopup.close()
     }
 
     function commitGain() {
@@ -213,133 +304,64 @@ Rectangle {
             Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 4; color: root.accent }
             Label { text: root.axisName; color: root.secondaryText; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.7 }
             Item { Layout.fillWidth: true }
-            ToolButton {
+            AxisFunctionButton {
+                id: invertButton
+                iconKind: "invert"
+                toolTipText: qsTr("Reverse %1 direction").arg(root.axisLabels[root.axisIndex])
+                emphasized: root.axisInverted
+                emphasisColor: "#B27DFF"
+                emphasisSurface: root.darkTheme ? "#352748" : "#F0E8FC"
+                onActivated: root.controller.set_axis_inverted(root.axisIndex, !root.axisInverted)
+            }
+            AxisFunctionButton {
                 id: preferredTravelButton
-                Layout.preferredWidth: 22; Layout.preferredHeight: 22
-                onClicked: {
-                    speedPopup.close()
-                    smartLimitPopup.close()
+                iconKind: "range"
+                toolTipText: qsTr("Preferred %1 range").arg(root.axisLabels[root.axisIndex])
+                emphasized: root.preferredTravelEnabled
+                onActivated: {
+                    root.closeAxisPopups()
                     root.openPopupNear(preferredTravelButton, preferredTravelPopup)
                 }
-                background: Rectangle {
-                    radius: 6
-                    color: root.preferredTravelEnabled ? (root.darkTheme ? "#173444" : "#E6F7FC")
-                                                         : preferredTravelButton.hovered ? root.valueSurface : "transparent"
-                    border.width: root.preferredTravelEnabled ? 1 : 0
-                    border.color: root.accent
-                }
-                contentItem: Canvas {
-                    id: preferredTravelIcon
-                    anchors.fill: parent
-                    onPaint: {
-                        const ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        ctx.strokeStyle = root.preferredTravelEnabled ? root.accent : root.secondaryText
-                        ctx.fillStyle = ctx.strokeStyle
-                        ctx.lineWidth = 1.4
-                        ctx.lineCap = "round"
-                        ctx.beginPath()
-                        ctx.moveTo(4, 11); ctx.lineTo(18, 11)
-                        ctx.moveTo(4, 11); ctx.lineTo(7, 8)
-                        ctx.moveTo(4, 11); ctx.lineTo(7, 14)
-                        ctx.moveTo(18, 11); ctx.lineTo(15, 8)
-                        ctx.moveTo(18, 11); ctx.lineTo(15, 14)
-                        ctx.stroke()
-                        ctx.beginPath(); ctx.arc(11, 11, 2, 0, Math.PI * 2); ctx.fill()
-                    }
-                    Connections { target: root; function onPreferredTravelEnabledChanged() { preferredTravelIcon.requestPaint() } }
-                }
-                AppToolTip {
-                    visible: preferredTravelButton.hovered
-                    text: qsTr("Preferred %1 range").arg(root.axisLabels[root.axisIndex])
-                    darkTheme: root.darkTheme
+            }
+            AxisFunctionButton {
+                id: returnPositionButton
+                iconKind: "return"
+                toolTipText: qsTr("Return %1 position").arg(root.axisLabels[root.axisIndex])
+                emphasized: Math.abs(root.axisReturnPosition - 0.5) >= 0.0005
+                emphasisColor: "#F1B865"
+                emphasisSurface: root.darkTheme ? "#3A2D1D" : "#FFF3DD"
+                onActivated: {
+                    root.closeAxisPopups()
+                    root.openPopupNear(returnPositionButton, returnPositionPopup)
                 }
             }
-            ToolButton {
+            AxisFunctionButton {
                 id: smartLimitButton
-                Layout.preferredWidth: 22; Layout.preferredHeight: 22
-                onClicked: {
-                    speedPopup.close()
-                    preferredTravelPopup.close()
+                iconKind: "smart"
+                toolTipText: qsTr("Smart limit · axis-linked curve")
+                emphasized: root.smartLimitEnabled
+                emphasisColor: root.enabledGreen
+                emphasisSurface: root.darkTheme ? "#173728" : "#E8F8EF"
+                onActivated: {
+                    root.closeAxisPopups()
                     root.openPopupNear(smartLimitButton, smartLimitPopup)
                 }
-                background: Rectangle {
-                    radius: 6
-                    color: root.smartLimitEnabled ? (root.darkTheme ? "#173728" : "#E8F8EF")
-                                                        : smartLimitButton.hovered ? root.valueSurface : "transparent"
-                    border.width: root.smartLimitEnabled ? 1 : 0
-                    border.color: root.enabledGreen
-                }
-                contentItem: Canvas {
-                    id: smartLimitIcon
-                    anchors.fill: parent
-                    onPaint: {
-                        const ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        ctx.strokeStyle = root.smartLimitEnabled ? root.enabledGreen : root.secondaryText
-                        ctx.lineWidth = 1.4
-                        ctx.lineCap = "round"
-                        ctx.lineJoin = "round"
-                        ctx.beginPath()
-                        ctx.moveTo(4, 7); ctx.lineTo(18, 7); ctx.lineTo(15.5, 4.5)
-                        ctx.moveTo(18, 15); ctx.lineTo(4, 15); ctx.lineTo(6.5, 17.5)
-                        ctx.stroke()
-                    }
-                    Connections { target: root; function onOutputSettingsChanged() { smartLimitIcon.requestPaint() } }
-                }
-                AppToolTip {
-                    visible: smartLimitButton.hovered
-                    text: qsTr("Smart limit")
-                    darkTheme: root.darkTheme
-                }
             }
-            ToolButton {
+            AxisFunctionButton {
                 id: speedButton
-                Layout.preferredWidth: 22; Layout.preferredHeight: 22
-                onClicked: {
-                    smartLimitPopup.close()
-                    preferredTravelPopup.close()
+                iconKind: "speed"
+                toolTipText: root.axisOutputEnabled ? qsTr("Output and speed limit") : qsTr("Axis output off")
+                emphasized: !root.axisOutputEnabled || root.speedEnabled
+                emphasisColor: root.axisOutputEnabled ? root.enabledGreen : root.disabledRed
+                emphasisSurface: !root.axisOutputEnabled
+                                 ? (root.darkTheme ? "#3A2223" : "#FCECEA")
+                                 : (root.darkTheme ? "#173728" : "#E8F8EF")
+                onActivated: {
+                    root.closeAxisPopups()
                     root.openPopupNear(speedButton, speedPopup)
                 }
-                background: Rectangle {
-                    radius: 6
-                    color: !root.axisOutputEnabled ? (root.darkTheme ? "#3A2223" : "#FCECEA")
-                                               : root.speedEnabled ? (root.darkTheme ? "#173728" : "#E8F8EF")
-                                                   : speedButton.hovered ? root.valueSurface : "transparent"
-                    border.width: (!root.axisOutputEnabled || root.speedEnabled) ? 1 : 0
-                    border.color: root.axisOutputEnabled ? root.enabledGreen : root.disabledRed
-                }
-                contentItem: Canvas {
-                    id: speedIcon
-                    anchors.fill: parent
-                    onPaint: {
-                        const ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        ctx.strokeStyle = !root.axisOutputEnabled ? root.disabledRed
-                                                                 : root.speedEnabled ? root.enabledGreen : root.secondaryText
-                        ctx.lineWidth = 1.4
-                        ctx.lineCap = "round"
-                        ctx.beginPath()
-                        ctx.arc(11, 12, 6.5, Math.PI * 0.85, Math.PI * 2.15)
-                        ctx.moveTo(11, 12); ctx.lineTo(14.7, 8.3)
-                        ctx.stroke()
-                        ctx.fillStyle = root.speedEnabled ? root.enabledGreen : root.secondaryText
-                        ctx.beginPath(); ctx.arc(11, 12, 1.2, 0, Math.PI * 2); ctx.fill()
-                        if (!root.axisOutputEnabled) {
-                            ctx.strokeStyle = root.disabledRed
-                            ctx.lineWidth = 1.8
-                            ctx.beginPath(); ctx.moveTo(5, 5); ctx.lineTo(17, 18); ctx.stroke()
-                        }
-                    }
-                    Connections { target: root; function onOutputSettingsChanged() { speedIcon.requestPaint() } }
-                }
-                AppToolTip {
-                    visible: speedButton.hovered
-                    text: root.axisOutputEnabled ? qsTr("Speed limit") : qsTr("Axis output off")
-                    darkTheme: root.darkTheme
-                }
             }
-            Label { text: Math.round(root.axisValue * 9999).toString().padStart(4, "0"); color: root.primaryText; font.family: "Cascadia Mono"; font.pixelSize: 17; font.weight: Font.DemiBold }
+            Label { text: (root.axisValue * 100).toFixed(1) + "%"; color: root.primaryText; font.family: "Cascadia Mono"; font.pixelSize: 17; font.weight: Font.DemiBold }
         }
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 8; radius: 4; color: root.trackSurface
@@ -390,7 +412,7 @@ Rectangle {
                 Layout.preferredHeight: 20
                 from: 0.0
                 to: 1.0
-                stepSize: 0.01
+                stepSize: 0.001
                 first.value: root.outputMinimum
                 second.value: root.outputMaximum
                 first.onPressedChanged: if (!first.pressed) root.commitRange()
@@ -427,12 +449,12 @@ Rectangle {
                     border.width: 2; border.color: root.accent
                 }
             }
-            Rectangle { Layout.preferredWidth: 88; Layout.preferredHeight: 22; radius: 7; color: root.valueSurface
+            Rectangle { Layout.preferredWidth: 106; Layout.preferredHeight: 22; radius: 7; color: root.valueSurface
                 Label {
                     anchors.centerIn: parent
-                    text: Math.round(rangeSlider.first.value * 9999).toString().padStart(4, "0")
+                    text: (rangeSlider.first.value * 100).toFixed(1) + "%"
                           + "–"
-                          + Math.round(rangeSlider.second.value * 9999).toString().padStart(4, "0")
+                          + (rangeSlider.second.value * 100).toFixed(1) + "%"
                     color: root.secondaryText
                     font.pixelSize: 9
                     font.family: "Cascadia Mono"
@@ -472,12 +494,12 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 StableStepper {
                     Layout.preferredWidth: 112
-                    from: 0; to: Math.max(0, root.preferredMaximum - 1000); stepSize: 100
+                    from: 0; to: Math.max(0, root.preferredMaximum - 10); stepSize: 0.5
                     value: root.preferredMinimum
-                    decimals: 0
-                    suffixText: ""
-                    numberWidth: 46
-                    suffixWidth: 0
+                    decimals: 1
+                    suffixText: "%"
+                    numberWidth: 42
+                    suffixWidth: 10
                     onValueModified: (nextValue) => root.controller.set_axis_preferred_travel_range(root.axisIndex, nextValue, root.preferredMaximum)
                 }
             }
@@ -488,12 +510,12 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 StableStepper {
                     Layout.preferredWidth: 112
-                    from: Math.min(9999, root.preferredMinimum + 1000); to: 9999; stepSize: 100
+                    from: Math.min(100, root.preferredMinimum + 10); to: 100; stepSize: 0.5
                     value: root.preferredMaximum
-                    decimals: 0
-                    suffixText: ""
-                    numberWidth: 46
-                    suffixWidth: 0
+                    decimals: 1
+                    suffixText: "%"
+                    numberWidth: 42
+                    suffixWidth: 10
                     onValueModified: (nextValue) => root.controller.set_axis_preferred_travel_range(root.axisIndex, root.preferredMinimum, nextValue)
                 }
             }
@@ -551,6 +573,50 @@ Rectangle {
     }
 
     Popup {
+        id: returnPositionPopup
+        parent: Overlay.overlay
+        width: 252
+        padding: 13
+        modal: false
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle {
+            radius: 10
+            color: root.darkTheme ? "#151C27" : "#FFFFFF"
+            border.color: root.darkTheme ? "#303C4E" : "#CDD6E1"
+        }
+        contentItem: ColumnLayout {
+            spacing: 9
+            Label {
+                text: qsTr("RETURN %1 POSITION").arg(root.axisLabels[root.axisIndex])
+                color: root.secondaryText
+                font.pixelSize: 9
+                font.bold: true
+                font.letterSpacing: 0.5
+            }
+            StableStepper {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 132
+                from: 0; to: 100; stepSize: 0.5
+                value: root.axisReturnPosition * 100
+                decimals: 1
+                suffixText: "%"
+                numberWidth: 42
+                suffixWidth: 10
+                onValueModified: (nextValue) => root.controller.set_axis_return_position(root.axisIndex, nextValue / 100)
+            }
+            Label {
+                Layout.fillWidth: true
+                text: qsTr("Used when motion returns, before live motion, and while this axis is disabled.")
+                wrapMode: Text.WordWrap
+                color: root.mutedText
+                font.pixelSize: 9
+                lineHeight: 1.15
+            }
+        }
+    }
+
+    Popup {
         id: speedPopup
         parent: Overlay.overlay
         width: 240
@@ -573,26 +639,6 @@ Rectangle {
                     checked: root.axisOutputEnabled
                     onToggled: root.controller.set_axis_output_enabled(root.axisIndex, checked)
                 }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                Label { text: qsTr("SAFE POSITION"); color: root.secondaryText; font.pixelSize: 9; font.bold: true; font.letterSpacing: 0.5 }
-                Item { Layout.fillWidth: true }
-                StableStepper {
-                    Layout.preferredWidth: 112
-                    from: 0; to: 100; stepSize: 1
-                    value: Math.round(root.axisSafeValue * 100)
-                    decimals: 0
-                    suffixText: "%"
-                    numberWidth: 30
-                    suffixWidth: 10
-                    onValueModified: (nextValue) => root.controller.set_axis_safe_value(root.axisIndex, nextValue / 100)
-                }
-            }
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: root.darkTheme ? "#293547" : "#E0E6ED"
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -893,8 +939,8 @@ Rectangle {
                     text: "(" + Math.round(smartLimitPopup.editUpperInput * 100) + "%, " + Math.round(smartLimitPopup.editUpperFactor * 100) + "%)"
                     color: root.secondaryText; font.pixelSize: 8
                 }
-                Label { x: 2; y: parent.plotTop - height / 2; text: "100"; color: root.mutedText; font.pixelSize: 7 }
-                Label { x: 7; y: parent.plotBottom - height / 2; text: "0"; color: root.mutedText; font.pixelSize: 7 }
+                Label { x: 0; y: parent.plotTop - height / 2; text: "100%"; color: root.mutedText; font.pixelSize: 7 }
+                Label { x: 4; y: parent.plotBottom - height / 2; text: "0%"; color: root.mutedText; font.pixelSize: 7 }
                 Label { x: parent.plotLeft - width / 2; anchors.bottom: parent.bottom; text: "0%"; color: root.mutedText; font.pixelSize: 8 }
                 Label { x: parent.plotRight - width / 2; anchors.bottom: parent.bottom; text: "100%"; color: root.mutedText; font.pixelSize: 8 }
             }

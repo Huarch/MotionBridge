@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(MotionBridge VERSION 0.1.5 LANGUAGES CXX)
+project(MotionBridge VERSION 0.1.6 LANGUAGES CXX)
 
 option(MOTION_BRIDGE_BUILD_GUI "Build the Qt Quick desktop application" ON)
 option(MOTION_BRIDGE_BUILD_TESTS "Build core regression tests" ON)
+set(MOTION_BRIDGE_TEST_NAMES)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,6 +30,7 @@ if(MOTION_BRIDGE_BUILD_TESTS)
     add_executable(motion_bridge_core_tests tests/core_tests.cpp)
     target_link_libraries(motion_bridge_core_tests PRIVATE motion_bridge_core)
     add_test(NAME motion_bridge_core_tests COMMAND motion_bridge_core_tests)
+    list(APPEND MOTION_BRIDGE_TEST_NAMES motion_bridge_core_tests)
 endif()
 
 if(MOTION_BRIDGE_BUILD_GUI)
@@ -46,8 +48,8 @@ if(MOTION_BRIDGE_BUILD_GUI)
         src/app/realtime_pipeline.hpp
         src/app/realtime_pipeline.cpp
         src/app/device_router.hpp
-        src/app/handy_position_output.hpp
-        src/app/handy_position_output.cpp
+        src/app/intiface_protocol.hpp
+        src/app/intiface_protocol.cpp
         src/app/obj_geometry.hpp
         src/app/obj_geometry.cpp
         src/app/fallen_doll_input.cpp
@@ -125,14 +127,28 @@ if(MOTION_BRIDGE_BUILD_GUI)
         motion_bridge_core Qt6::Core Qt6::Gui Qt6::Network Qt6::Quick Qt6::Quick3D Qt6::SerialPort Qt6::WebSockets
     )
     if(MOTION_BRIDGE_BUILD_TESTS)
-        add_executable(handy_position_output_tests
-            tests/handy_position_output_tests.cpp
-            src/app/handy_position_output.hpp
-            src/app/handy_position_output.cpp
+        add_executable(intiface_protocol_tests
+            tests/intiface_protocol_tests.cpp
+            src/app/intiface_protocol.hpp
+            src/app/intiface_protocol.cpp
         )
-        target_include_directories(handy_position_output_tests PRIVATE src/app)
-        target_link_libraries(handy_position_output_tests PRIVATE Qt6::Core Qt6::Network)
-        add_test(NAME handy_position_output_tests COMMAND handy_position_output_tests)
+        target_include_directories(intiface_protocol_tests PRIVATE src/app)
+        target_link_libraries(intiface_protocol_tests PRIVATE Qt6::Core)
+        add_test(NAME intiface_protocol_tests COMMAND intiface_protocol_tests)
+        list(APPEND MOTION_BRIDGE_TEST_NAMES intiface_protocol_tests)
+        add_executable(device_router_state_tests
+            tests/device_router_state_tests.cpp
+            src/app/device_router.hpp
+            src/app/device_router.cpp
+            src/app/intiface_protocol.hpp
+            src/app/intiface_protocol.cpp
+        )
+        target_include_directories(device_router_state_tests PRIVATE include src/app)
+        target_link_libraries(device_router_state_tests PRIVATE
+            motion_bridge_core Qt6::Core Qt6::Network Qt6::SerialPort Qt6::WebSockets
+        )
+        add_test(NAME device_router_state_tests COMMAND device_router_state_tests)
+        list(APPEND MOTION_BRIDGE_TEST_NAMES device_router_state_tests)
     endif()
     if(WIN32)
         target_link_libraries(MotionBridge PRIVATE Dbghelp)
@@ -145,4 +161,22 @@ if(MOTION_BRIDGE_BUILD_GUI)
         LUPDATE_OPTIONS -no-obsolete
     )
     set_target_properties(MotionBridge PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
+if(MOTION_BRIDGE_BUILD_TESTS AND WIN32 AND MINGW)
+    # Make every test self-contained with respect to the compiler and Qt
+    # runtimes. CTest can then start binaries without relying on the caller's
+    # PATH, which also prevents Windows missing-DLL dialogs.
+    get_filename_component(MOTION_BRIDGE_MINGW_RUNTIME_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    set(MOTION_BRIDGE_TEST_ENVIRONMENT
+        "PATH=path_list_prepend:${MOTION_BRIDGE_MINGW_RUNTIME_DIR}"
+    )
+    if(MOTION_BRIDGE_BUILD_GUI)
+        list(APPEND MOTION_BRIDGE_TEST_ENVIRONMENT
+            "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+        )
+    endif()
+    set_tests_properties(${MOTION_BRIDGE_TEST_NAMES} PROPERTIES
+        ENVIRONMENT_MODIFICATION "${MOTION_BRIDGE_TEST_ENVIRONMENT}"
+    )
 endif()

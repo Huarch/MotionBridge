@@ -76,6 +76,23 @@ void test_hold_and_return() {
     require_close(idle.device_axes[0], 0.5);
 }
 
+void test_custom_axis_return_position() {
+    MotionEngine engine;
+    engine.set_axis_return_position(0, 0.2);
+    const auto initial = engine.process(orthogonal_frame(std::chrono::milliseconds{1000}));
+    require_close(initial.device_axes[0], 1.0);
+
+    const auto returning = engine.process_missing(std::chrono::milliseconds{1550});
+    assert(returning.state == MotionState::Returning);
+    require_close(returning.device_axes[0], 0.6);
+    require_close(returning.raw_axes[0], 0.75);
+
+    const auto idle = engine.process_missing(std::chrono::milliseconds{1900});
+    assert(idle.state == MotionState::Idle);
+    require_close(idle.device_axes[0], 0.2);
+    require_close(idle.raw_axes[0], 0.5);
+}
+
 void test_bilateral_contact_uses_reference_depth() {
     MotionEngine engine;
     auto config = engine.contact_config();
@@ -91,6 +108,19 @@ void test_bilateral_contact_uses_reference_depth() {
     require_close(snapshot.raw_axes[0], 0.4);
     require_close(snapshot.raw_axes[4], 0.5);
     require_close(snapshot.raw_axes[5], 0.5);
+}
+
+void test_axis_inversion_is_independent() {
+    MotionEngine engine;
+    auto tuning = engine.axis_tuning();
+    tuning[1].inverted = true;
+    engine.set_axis_tuning(tuning);
+    auto frame = orthogonal_frame();
+    frame.participants[1].bones["M_Gen"].position.z = 0.075;
+    const auto snapshot = engine.process(frame);
+    require_close(snapshot.raw_axes[1], 0.25);
+    require_close(snapshot.device_axes[1], 0.75);
+    require_close(snapshot.device_axes[2], 0.5);
 }
 
 void test_tcode_can_send_only_changed_axes_with_real_interval() {
@@ -173,11 +203,11 @@ void test_output_speed_limit_only_affects_enabled_axes() {
     require_close(output[1], 1.0);
 }
 
-void test_output_axis_disable_moves_only_selected_axis_to_safe_value() {
+void test_output_axis_disable_moves_only_selected_axis_to_return_position() {
     OutputSignalConfig config;
     config.soft_start_enabled = false;
     config.axis_output_enabled[0] = false;
-    config.axis_safe_value[0] = 0.2;
+    config.axis_return_position[0] = 0.2;
     OutputSignalProcessor processor(config);
     Axes target;
     target[0] = 1.0;
@@ -189,10 +219,10 @@ void test_output_axis_disable_moves_only_selected_axis_to_safe_value() {
     require_close(output[1], 0.2);
 }
 
-void test_output_waits_at_custom_safe_values_before_live_motion() {
+void test_output_waits_at_custom_return_positions_before_live_motion() {
     OutputSignalConfig config;
-    config.axis_safe_value[0] = 0.3;
-    config.axis_safe_value[1] = 0.7;
+    config.axis_return_position[0] = 0.3;
+    config.axis_return_position[1] = 0.7;
     OutputSignalProcessor processor(config);
     Axes target;
     target[0] = 1.0;
@@ -226,11 +256,11 @@ void test_output_axis_disable_obeys_its_speed_limit() {
     require_close(processor.process(target, std::chrono::milliseconds{600}, true)[0], 0.9);
 }
 
-void test_output_disabled_axis_stays_safe_during_stream_return() {
+void test_output_disabled_axis_stays_at_return_position_during_stream_return() {
     OutputSignalConfig config;
     config.soft_start_enabled = false;
     config.axis_output_enabled[0] = false;
-    config.axis_safe_value[0] = 0.2;
+    config.axis_return_position[0] = 0.2;
     OutputSignalProcessor processor(config);
     Axes target;
     target[0] = 1.0;
@@ -358,11 +388,11 @@ void test_smart_limit_uses_selected_driver_axes_from_one_snapshot() {
     require_close(output[2], 0.48);
 }
 
-void test_smart_limit_reads_disabled_driver_safe_position() {
+void test_smart_limit_reads_disabled_driver_return_position() {
     OutputSignalConfig config;
     config.soft_start_enabled = false;
     config.axis_output_enabled[0] = false;
-    config.axis_safe_value[0] = 0.2;
+    config.axis_return_position[0] = 0.2;
     auto& smart_limit = config.smart_limit[1];
     smart_limit.enabled = true;
     smart_limit.input_axis = 0;
@@ -892,19 +922,21 @@ int main() {
     test_output_speed_limit_is_per_axis_and_time_based();
     test_output_waits_for_live_motion_and_does_not_delay_safety_return();
     test_output_speed_limit_only_affects_enabled_axes();
-    test_output_axis_disable_moves_only_selected_axis_to_safe_value();
-    test_output_waits_at_custom_safe_values_before_live_motion();
+    test_output_axis_disable_moves_only_selected_axis_to_return_position();
+    test_output_waits_at_custom_return_positions_before_live_motion();
     test_output_axis_disable_obeys_its_speed_limit();
-    test_output_disabled_axis_stays_safe_during_stream_return();
+    test_output_disabled_axis_stays_at_return_position_during_stream_return();
     test_smart_limit_value_mode_supports_zero_and_one_factors();
     test_smart_limit_speed_mode_blends_from_current_output();
     test_smart_limit_holds_endpoints_and_interpolates_between_them();
     test_smart_limit_x_coordinates_change_transition_location();
     test_smart_limit_uses_selected_driver_axes_from_one_snapshot();
-    test_smart_limit_reads_disabled_driver_safe_position();
+    test_smart_limit_reads_disabled_driver_return_position();
     test_smart_limit_normalizes_control_points_and_driver_axis();
     test_gain_scales_output_travel();
+    test_axis_inversion_is_independent();
     test_hold_and_return();
+    test_custom_axis_return_position();
     test_bilateral_contact_uses_reference_depth();
     test_direct_profile_uses_reference_length_and_axis_mask();
     test_direct_profile_can_calibrate_signed_l0_range();

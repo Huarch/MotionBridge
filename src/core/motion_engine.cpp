@@ -242,6 +242,10 @@ void MotionEngine::set_contact_config(ContactConfig contact) {
     }
 }
 void MotionEngine::set_axis_tuning(std::array<AxisTuning, 6> tuning) { tuning_ = std::move(tuning); }
+void MotionEngine::set_axis_return_position(const std::size_t axis, const double position) {
+    if (axis >= safety_.return_positions.size()) return;
+    safety_.return_positions[axis] = clamp01(position);
+}
 void MotionEngine::set_axis_travel_preference(const std::size_t axis, PreferredTravelConfig config) {
     if (axis >= travel_configs_.size()) return;
     config.preferred_minimum = std::clamp(config.preferred_minimum, 0.0, 0.9);
@@ -603,7 +607,8 @@ EngineSnapshot MotionEngine::process_missing(const std::chrono::microseconds now
     snapshot.contact.reason = ratio >= 1.0 ? "idle" : "returning";
     for (std::size_t index = 0; index < 6; ++index) {
         snapshot.raw_axes[index] = snapshot.raw_axes[index] + (0.5 - snapshot.raw_axes[index]) * ratio;
-        snapshot.device_axes[index] = snapshot.device_axes[index] + (0.5 - snapshot.device_axes[index]) * ratio;
+        const auto return_position = safety_.return_positions[index];
+        snapshot.device_axes[index] += (return_position - snapshot.device_axes[index]) * ratio;
     }
     return snapshot;
 }
