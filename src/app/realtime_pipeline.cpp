@@ -414,10 +414,12 @@ void RealtimePipeline::set_reference_participant(const QString& reference) {
     auto contact = engine_.contact_config();
     const auto next_reference = reference.trimmed().toStdString();
     if (contact.reference_participant == next_reference) return;
-    // Changing the source actor switches all six axes. Stop output first, then
-    // require an explicit arm after a fresh frame confirms the new route.
+    // Changing the source actor invalidates the current motion calculation.
+    // MotionEngine clears its last valid frame below, so the normal output
+    // safety path returns the axes until a frame for the new route arrives.
+    // Keep the already armed transport intact: this is a routing change, not
+    // an emergency stop or a device disconnect.
     output_processor_.arm(now());
-    device_->emergency_stop();
     contact.reference_participant = next_reference;
     engine_.set_contact_config(contact);
     input_->set_reference_participant(reference);

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(MotionBridge VERSION 0.1.6 LANGUAGES CXX)
+project(MotionBridge VERSION 0.1.7 LANGUAGES CXX)
 
 option(MOTION_BRIDGE_BUILD_GUI "Build the Qt Quick desktop application" ON)
 option(MOTION_BRIDGE_BUILD_TESTS "Build core regression tests" ON)
@@ -149,6 +149,25 @@ if(MOTION_BRIDGE_BUILD_GUI)
         )
         add_test(NAME device_router_state_tests COMMAND device_router_state_tests)
         list(APPEND MOTION_BRIDGE_TEST_NAMES device_router_state_tests)
+        add_executable(realtime_pipeline_routing_tests
+            tests/realtime_pipeline_routing_tests.cpp
+            src/app/realtime_pipeline.hpp
+            src/app/realtime_pipeline.cpp
+            src/app/fallen_doll_input.hpp
+            src/app/fallen_doll_input.cpp
+            src/app/device_router.hpp
+            src/app/device_router.cpp
+            src/app/intiface_protocol.hpp
+            src/app/intiface_protocol.cpp
+            src/app/motion_bridge_settings.hpp
+            src/app/motion_bridge_settings.cpp
+        )
+        target_include_directories(realtime_pipeline_routing_tests PRIVATE include src/app)
+        target_link_libraries(realtime_pipeline_routing_tests PRIVATE
+            motion_bridge_core Qt6::Core Qt6::Network Qt6::SerialPort Qt6::WebSockets
+        )
+        add_test(NAME realtime_pipeline_routing_tests COMMAND realtime_pipeline_routing_tests)
+        list(APPEND MOTION_BRIDGE_TEST_NAMES realtime_pipeline_routing_tests)
     endif()
     if(WIN32)
         target_link_libraries(MotionBridge PRIVATE Dbghelp)
