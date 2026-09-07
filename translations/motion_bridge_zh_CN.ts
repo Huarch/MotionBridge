@@ -363,87 +363,87 @@
         <translation>切换到暗色主题</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="798"/>
+        <location filename="../qml/Main.qml" line="810"/>
         <source>Live control</source>
         <translation>实时控制</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="809"/>
+        <location filename="../qml/Main.qml" line="821"/>
         <source>STREAM</source>
         <translation>数据流</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="809"/>
+        <location filename="../qml/Main.qml" line="821"/>
         <source>ONLINE</source>
         <translation>在线</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="809"/>
+        <location filename="../qml/Main.qml" line="821"/>
         <source>WAITING</source>
         <translation>等待中</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="810"/>
+        <location filename="../qml/Main.qml" line="822"/>
         <source>MOTION</source>
         <translation>动作</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="812"/>
+        <location filename="../qml/Main.qml" line="824"/>
         <source>DEVICE</source>
         <translation>设备</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="813"/>
-        <location filename="../qml/Main.qml" line="959"/>
+        <location filename="../qml/Main.qml" line="825"/>
+        <location filename="../qml/Main.qml" line="971"/>
         <source>ARMED</source>
         <translation>已启用</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="815"/>
-        <location filename="../qml/Main.qml" line="944"/>
-        <location filename="../qml/Main.qml" line="963"/>
+        <location filename="../qml/Main.qml" line="827"/>
+        <location filename="../qml/Main.qml" line="956"/>
+        <location filename="../qml/Main.qml" line="975"/>
         <source>OFF</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="821"/>
+        <location filename="../qml/Main.qml" line="833"/>
         <source>STOP OUTPUT</source>
         <translation>停止输出</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="821"/>
+        <location filename="../qml/Main.qml" line="833"/>
         <source>ARM OUTPUT</source>
         <translation>启用输出</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="953"/>
+        <location filename="../qml/Main.qml" line="965"/>
         <source>Recreates Wi-Fi output after a local network, address, or UDP socket error. UDP cannot confirm whether the remote device itself is connected. Manual STOP OUTPUT always cancels reconnection.</source>
         <translation>本机网络、地址解析或 UDP 套接字报错后重建 Wi-Fi 输出。UDP 无法确认远端设备本身是否已连接。手动停止输出始终会取消重连。</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="954"/>
+        <location filename="../qml/Main.qml" line="966"/>
         <source>After an unexpected USB, Intiface, or device disconnect, reconnect automatically and resume the output that you already enabled. Manual STOP OUTPUT always cancels reconnection.</source>
         <translation>USB、Intiface 或设备意外断开后自动重连，并恢复你之前已经启用的输出。手动停止输出始终会取消重连。</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="836"/>
+        <location filename="../qml/Main.qml" line="848"/>
         <source>USB · Wi-Fi · Intiface</source>
         <translation>USB · Wi-Fi · Intiface</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="837"/>
-        <location filename="../qml/Main.qml" line="1059"/>
+        <location filename="../qml/Main.qml" line="849"/>
+        <location filename="../qml/Main.qml" line="1071"/>
         <source>Motion tuning</source>
         <translation>动作调节</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="839"/>
+        <location filename="../qml/Main.qml" line="851"/>
         <source>OUTPUT SAFE</source>
         <translation>输出安全</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="836"/>
-        <location filename="../qml/Main.qml" line="889"/>
+        <location filename="../qml/Main.qml" line="848"/>
+        <location filename="../qml/Main.qml" line="901"/>
         <source>Device connection</source>
         <translation>设备连接</translation>
     </message>
@@ -468,209 +468,224 @@
         <translation>重启后生效</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="814"/>
-        <location filename="../qml/Main.qml" line="959"/>
+        <location filename="../qml/Main.qml" line="826"/>
+        <location filename="../qml/Main.qml" line="971"/>
         <source>CONNECTING</source>
         <translation>连接中</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="936"/>
+        <location filename="../qml/Main.qml" line="948"/>
         <source>AUTO RECONNECT</source>
         <translation>自动重连</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="838"/>
-        <location filename="../qml/Main.qml" line="1229"/>
+        <location filename="../qml/Main.qml" line="850"/>
+        <location filename="../qml/Main.qml" line="1241"/>
         <source>3D preview</source>
         <translation>3D 预览</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="838"/>
+        <location filename="../qml/Main.qml" line="779"/>
+        <source>Update available: %1 — open download page</source>
+        <translation>有可用更新：%1 — 打开下载页面</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="780"/>
+        <source>Checking for updates</source>
+        <translation>检查更新中</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="781"/>
+        <source>Check for updates</source>
+        <translation>检查更新</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="850"/>
         <source>Separate window</source>
         <translation>独立窗口</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="890"/>
+        <location filename="../qml/Main.qml" line="902"/>
         <source>One transport at a time</source>
         <translation>一次只能使用一种连接方式</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="944"/>
+        <location filename="../qml/Main.qml" line="956"/>
         <source>ON</source>
         <translation>开</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="959"/>
+        <location filename="../qml/Main.qml" line="971"/>
         <source>SAFE</source>
         <translation>安全</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="971"/>
+        <location filename="../qml/Main.qml" line="983"/>
         <source>Connect devices in Intiface Central first, then ARM OUTPUT. MotionBridge maps L0 0–100% to each device&apos;s advertised range. Timed-position linear devices, mainly Handy, use a dedicated 20 Hz clock. Target arrival time is automatic by default, with an optional manual override in Output processing.</source>
         <translation>请先在 Intiface Central 中连接设备，再启用输出。MotionBridge 会将 L0 0–100% 映射到各设备声明的行程范围。支持定时位置的线性设备（主要是 Handy）会使用独立的 20 Hz 时钟。目标到达时间默认自动，也可以在“输出处理”中手动覆盖。</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="995"/>
+        <location filename="../qml/Main.qml" line="1007"/>
         <source>USB PORT</source>
         <translation>USB 端口</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1007"/>
+        <location filename="../qml/Main.qml" line="1019"/>
         <source>Refresh serial ports</source>
         <translation>刷新串口</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1015"/>
+        <location filename="../qml/Main.qml" line="1027"/>
         <source>WI-FI HOST</source>
         <translation>WI-FI 主机</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1016"/>
+        <location filename="../qml/Main.qml" line="1028"/>
         <source>Wi-Fi host</source>
         <translation>Wi-Fi 主机</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1020"/>
+        <location filename="../qml/Main.qml" line="1032"/>
         <source>WI-FI PORT</source>
         <translation>WI-FI 端口</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1023"/>
+        <location filename="../qml/Main.qml" line="1035"/>
         <source>Wi-Fi port</source>
         <translation>Wi-Fi 端口</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1038"/>
+        <location filename="../qml/Main.qml" line="1050"/>
         <source>INTIFACE URL</source>
         <translation>INTIFACE 地址</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1039"/>
+        <location filename="../qml/Main.qml" line="1051"/>
         <source>Intiface Desktop URL</source>
         <translation>Intiface Desktop 地址</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1043"/>
+        <location filename="../qml/Main.qml" line="1055"/>
         <source>SAFETY</source>
         <translation>安全控制</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1045"/>
+        <location filename="../qml/Main.qml" line="1057"/>
         <source>CENTER &amp; DISARM</source>
         <translation>归中并停止输出</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1060"/>
+        <location filename="../qml/Main.qml" line="1072"/>
         <source>Device-side response · raw game motion stays unchanged</source>
         <translation>仅调整设备响应 · 游戏原始动作保持不变</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1074"/>
+        <location filename="../qml/Main.qml" line="1086"/>
         <source>Participant routing</source>
         <translation>参与者路由</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1075"/>
+        <location filename="../qml/Main.qml" line="1087"/>
         <source>Choose the motion source; target comes from the game stream</source>
         <translation>选择动作来源；目标由游戏数据流决定</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1096"/>
+        <location filename="../qml/Main.qml" line="1108"/>
         <source>SAFETY DISTANCE</source>
         <translation>安全距离</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1110"/>
+        <location filename="../qml/Main.qml" line="1122"/>
         <source>Signals start only after Reference and Target are within this distance</source>
         <translation>Reference 与 Target 进入该距离后才开始处理信号</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1129"/>
+        <location filename="../qml/Main.qml" line="1141"/>
         <source>Output processing</source>
         <translation>输出处理</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1130"/>
+        <location filename="../qml/Main.qml" line="1142"/>
         <source>Fixed cadence · device-side protection</source>
         <translation>固定频率 · 设备侧保护</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1136"/>
+        <location filename="../qml/Main.qml" line="1148"/>
         <source>OUTPUT RATE</source>
         <translation>输出频率</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1152"/>
+        <location filename="../qml/Main.qml" line="1164"/>
         <source>TARGET ARRIVAL TIME</source>
         <translation>目标到达时间</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1160"/>
+        <location filename="../qml/Main.qml" line="1172"/>
         <source>AUTO</source>
         <translation>自动</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1177"/>
+        <location filename="../qml/Main.qml" line="1189"/>
         <source>Only used by timed-position linear devices through Intiface, mainly Handy. Automatic follows the real 20 Hz output interval, normally 50 ms. Manual values from 50–100 ms can soften movement, but higher values add response delay.</source>
         <translation>仅用于通过 Intiface 连接且支持定时位置的线性设备，主要是 Handy。“自动”会跟随真实的 20 Hz 输出周期，通常为 50 ms。手动设置 50–100 ms 可以让运动更柔和，但更高数值会增加响应延迟。</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1186"/>
+        <location filename="../qml/Main.qml" line="1198"/>
         <source>SOFT START</source>
         <translation>软启动</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1082"/>
+        <location filename="../qml/Main.qml" line="1094"/>
         <source>REFERENCE PARTICIPANT</source>
         <translation>参考参与者</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="980"/>
+        <location filename="../qml/Main.qml" line="992"/>
         <source>OUTPUT STATUS: %1</source>
         <translation>输出状态：%1</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1208"/>
+        <location filename="../qml/Main.qml" line="1220"/>
         <source>L0  STROKE</source>
         <translation>L0  行程</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1209"/>
+        <location filename="../qml/Main.qml" line="1221"/>
         <source>L1  SURGE</source>
         <translation>L1  前后</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1210"/>
+        <location filename="../qml/Main.qml" line="1222"/>
         <source>L2  SWAY</source>
         <translation>L2  左右</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1211"/>
+        <location filename="../qml/Main.qml" line="1223"/>
         <source>R0  TWIST</source>
         <translation>R0  扭转</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1212"/>
+        <location filename="../qml/Main.qml" line="1224"/>
         <source>R1  ROLL</source>
         <translation>R1  侧倾</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1213"/>
+        <location filename="../qml/Main.qml" line="1225"/>
         <source>R2  PITCH</source>
         <translation>R2  俯仰</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1311"/>
+        <location filename="../qml/Main.qml" line="1323"/>
         <source>SR6 / OSR 3D preview</source>
         <translation>SR6 / OSR 3D 预览</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1321"/>
+        <location filename="../qml/Main.qml" line="1333"/>
         <source>TOP</source>
         <translation>置顶</translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="1350"/>
+        <location filename="../qml/Main.qml" line="1362"/>
         <source>Always on top</source>
         <translation>窗口始终置顶</translation>
     </message>
@@ -678,14 +693,39 @@
 <context>
     <name>MotionBridgeController</name>
     <message>
-        <location filename="../src/app/motion_bridge_controller.hpp" line="142"/>
+        <location filename="../src/app/motion_bridge_controller.hpp" line="157"/>
         <source>Starting real-time pipeline</source>
         <translation>正在启动实时管线</translation>
     </message>
     <message>
-        <location filename="../src/app/motion_bridge_controller.hpp" line="144"/>
+        <location filename="../src/app/motion_bridge_controller.hpp" line="159"/>
         <source>Output disarmed</source>
         <translation>输出未启用</translation>
+    </message>
+    <message>
+        <location filename="../src/app/motion_bridge_controller.cpp" line="223"/>
+        <source>Checking for updates</source>
+        <translation>检查更新中</translation>
+    </message>
+    <message>
+        <location filename="../src/app/motion_bridge_controller.cpp" line="236"/>
+        <source>Update check unavailable</source>
+        <translation>暂时无法检查更新</translation>
+    </message>
+    <message>
+        <location filename="../src/app/motion_bridge_controller.cpp" line="248"/>
+        <source>Update information is invalid</source>
+        <translation>更新信息无效</translation>
+    </message>
+    <message>
+        <location filename="../src/app/motion_bridge_controller.cpp" line="261"/>
+        <source>Update available: %1</source>
+        <translation>有可用更新：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/app/motion_bridge_controller.cpp" line="262"/>
+        <source>Up to date: %1</source>
+        <translation>已是最新版本：%1</translation>
     </message>
 </context>
 <context>
@@ -744,7 +784,7 @@
         <translation>输出未启用</translation>
     </message>
     <message>
-        <location filename="../src/app/realtime_pipeline.cpp" line="780"/>
+        <location filename="../src/app/realtime_pipeline.cpp" line="782"/>
         <source>Automatic</source>
         <translation>自动</translation>
     </message>

@@ -14,6 +14,7 @@ add_library(motion_bridge_core
     src/core/functional_target_selector.cpp
     src/core/motion_engine.cpp
     src/core/output_signal_processor.cpp
+    src/core/release_version.cpp
     src/core/tcode.cpp
 )
 target_include_directories(motion_bridge_core PUBLIC include)
@@ -31,6 +32,10 @@ if(MOTION_BRIDGE_BUILD_TESTS)
     target_link_libraries(motion_bridge_core_tests PRIVATE motion_bridge_core)
     add_test(NAME motion_bridge_core_tests COMMAND motion_bridge_core_tests)
     list(APPEND MOTION_BRIDGE_TEST_NAMES motion_bridge_core_tests)
+    add_executable(release_version_tests tests/release_version_tests.cpp)
+    target_link_libraries(release_version_tests PRIVATE motion_bridge_core)
+    add_test(NAME release_version_tests COMMAND release_version_tests)
+    list(APPEND MOTION_BRIDGE_TEST_NAMES release_version_tests)
 endif()
 
 if(MOTION_BRIDGE_BUILD_GUI)
@@ -126,6 +131,7 @@ if(MOTION_BRIDGE_BUILD_GUI)
     target_link_libraries(MotionBridge PRIVATE
         motion_bridge_core Qt6::Core Qt6::Gui Qt6::Network Qt6::Quick Qt6::Quick3D Qt6::SerialPort Qt6::WebSockets
     )
+    target_compile_definitions(MotionBridge PRIVATE MOTION_BRIDGE_VERSION="${PROJECT_VERSION}")
     if(MOTION_BRIDGE_BUILD_TESTS)
         add_executable(intiface_protocol_tests
             tests/intiface_protocol_tests.cpp

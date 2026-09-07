@@ -772,6 +772,18 @@ ApplicationWindow {
                         tipText: window.darkTheme ? qsTr("Switch to light theme") : qsTr("Switch to dark theme")
                         onClicked: companion.set_theme(window.darkTheme ? "light" : "dark")
                     }
+                    WindowButton {
+                        glyph: companion.updateAvailable ? "↑" : "⟳"
+                        glyphColor: companion.updateAvailable ? "#56E3B1" : window.textSecondary
+                        tipText: companion.updateAvailable
+                                 ? qsTr("Update available: %1 — open download page").arg(companion.latestVersion)
+                                 : companion.updateCheckInProgress ? qsTr("Checking for updates")
+                                 : companion.updateStatus.length ? companion.updateStatus : qsTr("Check for updates")
+                        onClicked: {
+                            if (companion.updateAvailable) Qt.openUrlExternally(companion.updateUrl)
+                            else companion.check_for_updates()
+                        }
+                    }
                     WindowButton { glyph: "—"; onClicked: window.showMinimized() }
                     WindowButton { glyph: "✕"; hoverColor: "#B84350"; onClicked: window.close() }
                 }
@@ -779,7 +791,7 @@ ApplicationWindow {
                     anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom
                     // Keep the drag layer away from all title-bar controls;
                     // overlap here made the left-most hover target intermittent.
-                    anchors.rightMargin: 266
+                    anchors.rightMargin: 308
                     acceptedButtons: Qt.LeftButton
                     onPressed: window.startSystemMove()
                     onDoubleClicked: window.visibility === Window.Maximized ? window.showNormal() : window.showMaximized()

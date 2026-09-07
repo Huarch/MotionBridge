@@ -3,6 +3,7 @@
 #include "realtime_pipeline.hpp"
 
 #include <QObject>
+#include <QNetworkAccessManager>
 #include <QThread>
 #include <QTimer>
 #include <QStringList>
@@ -48,6 +49,12 @@ class MotionBridgeController final : public QObject {
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(int displayScalePercent READ display_scale_percent NOTIFY settingsChanged)
     Q_PROPERTY(bool displayScaleRestartRequired READ display_scale_restart_required NOTIFY settingsChanged)
+    Q_PROPERTY(QString applicationVersion READ application_version CONSTANT)
+    Q_PROPERTY(bool updateCheckInProgress READ update_check_in_progress NOTIFY updateStatusChanged)
+    Q_PROPERTY(bool updateAvailable READ update_available NOTIFY updateStatusChanged)
+    Q_PROPERTY(QString latestVersion READ latest_version NOTIFY updateStatusChanged)
+    Q_PROPERTY(QString updateStatus READ update_status NOTIFY updateStatusChanged)
+    Q_PROPERTY(QString updateUrl READ update_url NOTIFY updateStatusChanged)
 
 public:
     explicit MotionBridgeController(QObject* parent = nullptr);
@@ -90,6 +97,12 @@ public:
     [[nodiscard]] QString theme() const;
     [[nodiscard]] int display_scale_percent() const;
     [[nodiscard]] bool display_scale_restart_required() const;
+    [[nodiscard]] QString application_version() const;
+    [[nodiscard]] bool update_check_in_progress() const;
+    [[nodiscard]] bool update_available() const;
+    [[nodiscard]] QString latest_version() const;
+    [[nodiscard]] QString update_status() const;
+    [[nodiscard]] QString update_url() const;
 
     Q_INVOKABLE void set_armed(bool armed);
     Q_INVOKABLE void emergency_stop();
@@ -126,6 +139,7 @@ public:
     Q_INVOKABLE void set_theme(const QString& theme);
     Q_INVOKABLE void set_reference_participant(const QString& reference);
     Q_INVOKABLE void set_display_scale_percent(int percent);
+    Q_INVOKABLE void check_for_updates();
     Q_INVOKABLE QVariantMap primary_screen_available_geometry() const;
 
 signals:
@@ -135,6 +149,7 @@ signals:
     void usbPortsChanged();
     void themeChanged();
     void participantChoicesChanged();
+    void updateStatusChanged();
 
 private:
     QThread realtime_thread_;
@@ -177,4 +192,10 @@ private:
     QString theme_{"dark"};
     int display_scale_percent_{};
     int startup_display_scale_percent_{};
+    QNetworkAccessManager update_network_;
+    bool update_check_in_progress_{};
+    bool update_available_{};
+    QString latest_version_;
+    QString update_status_;
+    QString update_url_{"https://github.com/Huarch/MotionBridge/releases/latest"};
 };

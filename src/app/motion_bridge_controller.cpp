@@ -1,12 +1,28 @@
 #include "motion_bridge_controller.hpp"
 #include "motion_bridge_settings.hpp"
+#include "motion_bridge/release_version.hpp"
 
 #include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMetaObject>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QScreen>
 #include <QSerialPortInfo>
 
 #include <algorithm>
+
+namespace {
+
+#ifndef MOTION_BRIDGE_VERSION
+#define MOTION_BRIDGE_VERSION "0.0.0"
+#endif
+
+const QUrl kLatestReleaseApi{QStringLiteral("https://api.github.com/repos/Huarch/MotionBridge/releases/latest")};
+const QString kLatestReleasePage{QStringLiteral("https://github.com/Huarch/MotionBridge/releases/latest")};
+
+} // namespace
 
 MotionBridgeController::MotionBridgeController(QObject* parent) : QObject(parent), pipeline_(new RealtimePipeline) {
     auto ui_settings = motion_bridge_settings();
@@ -72,6 +88,7 @@ MotionBridgeController::MotionBridgeController(QObject* parent) : QObject(parent
     usb_scan_timer_.start();
     realtime_thread_.start(QThread::HighPriority);
     QMetaObject::invokeMethod(pipeline_, "start", Qt::QueuedConnection);
+    QTimer::singleShot(1200, this, &MotionBridgeController::check_for_updates);
 }
 
 MotionBridgeController::~MotionBridgeController() {
@@ -119,6 +136,12 @@ QStringList MotionBridgeController::usb_ports() const { return usb_ports_; }
 QString MotionBridgeController::theme() const { return theme_; }
 int MotionBridgeController::display_scale_percent() const { return display_scale_percent_; }
 bool MotionBridgeController::display_scale_restart_required() const { return display_scale_percent_ != startup_display_scale_percent_; }
+QString MotionBridgeController::application_version() const { return QStringLiteral("v") + QStringLiteral(MOTION_BRIDGE_VERSION); }
+bool MotionBridgeController::update_check_in_progress() const { return update_check_in_progress_; }
+bool MotionBridgeController::update_available() const { return update_available_; }
+QString MotionBridgeController::latest_version() const { return latest_version_; }
+QString MotionBridgeController::update_status() const { return update_status_; }
+QString MotionBridgeController::update_url() const { return update_url_; }
 
 void MotionBridgeController::set_armed(const bool armed) { QMetaObject::invokeMethod(pipeline_, "set_armed", Qt::QueuedConnection, Q_ARG(bool, armed)); }
 void MotionBridgeController::emergency_stop() { QMetaObject::invokeMethod(pipeline_, "emergency_stop", Qt::QueuedConnection); }
@@ -189,4 +212,55 @@ void MotionBridgeController::set_display_scale_percent(const int percent) {
     settings.setValue("ui/displayScalePercent", display_scale_percent_);
     settings.sync();
     emit settingsChanged();
+}
+
+void MotionBridgeController::check_for_updates() {
+    if (update_check_in_progress_) return;
+
+    update_check_in_progress_ = true;
+    update_available_ = false;
+    latest_version_.clear();
+    update_status_ = tr("Checking for updates");
+    update_url_ = kLatestReleasePage;
+    emit updateStatusChanged();
+
+    QNetworkRequest request(kLatestReleaseApi);
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QStringLiteral("MotionBridge/") + QStringLiteral(MOTION_BRIDGE_VERSION));
+    request.setRawHeader("Accept", "application/vnd.github+json");
+    request.setTransferTimeout(5000);
+    auto* reply = update_network_.get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        update_check_in_progress_ = false;
+        if (reply->error() != QNetworkReply::NoError) {
+            update_status_ = tr("Update check unavailable");
+            reply->deleteLater();
+            emit updateStatusChanged();
+            return;
+        }
+
+        const auto document = QJsonDocument::fromJson(reply->readAll());
+        const auto release = document.object();
+        const auto tag = release.value("tag_name").toString().trimmed();
+        const auto current = motion_bridge::parse_release_version(application_version().toStdString());
+        const auto latest = motion_bridge::parse_release_version(tag.toStdString());
+        if (!current || !latest) {
+            update_status_ = tr("Update information is invalid");
+            reply->deleteLater();
+            emit updateStatusChanged();
+            return;
+        }
+
+        latest_version_ = tag.startsWith(u'v', Qt::CaseInsensitive) ? tag : QStringLiteral("v") + tag;
+        const auto release_url = release.value("html_url").toString();
+        if (release_url.startsWith(QStringLiteral("https://github.com/Huarch/MotionBridge/releases/"))) {
+            update_url_ = release_url;
+        }
+        update_available_ = *latest > *current;
+        update_status_ = update_available_
+            ? tr("Update available: %1").arg(latest_version_)
+            : tr("Up to date: %1").arg(application_version());
+        reply->deleteLater();
+        emit updateStatusChanged();
+    });
 }
